@@ -1,7 +1,7 @@
 Up to this point, we have deployed the microsweeper app using the publicly available ingress controller that comes with our public Azure Red Hat OpenShift cluster. Now, we will continue our work to expose our application via Azure Front Door using the private ingress controller that we created earlier in the workshop. 
 
 A quick diagram of the ARO and Azure Front Door integration:
-![ARO + Azure Front Door Diagram](images/aro-frontdoor.png)
+![ARO + Azure Front Door Diagram][![def](images/aro-frontdoor.png)]
 
 There are several advantages of this approach:
 
@@ -73,7 +73,7 @@ As you can see in the diagram, Azure Front Door sits on the edge of the Microsof
 
 Notice that the application is secured! This is done automatically for us by Front Door.
     
-![Microsweeper App](../assets/images/microsweeper-secured.png)
+![Microsweeper App](images/microsweeper-secured.png)
 
 If you remember, one of the benefits of using Azure Front Door is that traffic is sent through and secured at the Microsoft edge, rather than your application. You can get some idea of how the traffic flows by looking at how the DNS for the custom domain is resolving:
 
@@ -105,3 +105,5 @@ Address: 2620:1ec:bdf::57
 Notice how the results show traffic coming from `*.t-msedge.net`.
 
 Congratulations! You have now deployed a custom application, and exposed it to the internet using Azure Front Door.
+
+[def]: images/aro-frontdoor.png
