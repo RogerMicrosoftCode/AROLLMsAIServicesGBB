@@ -1,5 +1,6 @@
 #/bin/bash
 az login --use-device-code --tenant 
+az login --use-device-code --tenant 16b3c013-d300-468d-ac64-XXXXXXXXXXXX
 export LOCATION="westus3"
 export RESOURCEGROUP="arogbbwestus3"
 export CLUSTER="aroclusterwestus3"
