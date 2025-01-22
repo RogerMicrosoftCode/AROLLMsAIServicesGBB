@@ -1,7 +1,7 @@
 Up to this point, we have deployed the microsweeper app using the publicly available ingress controller that comes with our public Azure Red Hat OpenShift cluster. Now, we will continue our work to expose our application via Azure Front Door using the private ingress controller that we created earlier in the workshop. 
 
 A quick diagram of the ARO and Azure Front Door integration:
-![ARO + Azure Front Door Diagram](/images/aro-frontdoor.png)]
+![ARO + Azure Front Door Diagram](AppsDemo/images/aro-frontdoor.png)]
 
 There are several advantages of this approach:
 
