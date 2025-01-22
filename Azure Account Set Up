@@ -1,0 +1,10 @@
+Azure Account Set Up
+This document is a guide for preparing a new Azure account for use with OpenShift. It will help prepare an account to create a single cluster and provide insight for adjustments which may be needed for additional clusters.
+
+Follow along with the steps and links below to configure your Azure account and provision an OpenShift cluster:
+
+DNS Zone
+Limits
+Account
+Credentials
+Cluster Installation
