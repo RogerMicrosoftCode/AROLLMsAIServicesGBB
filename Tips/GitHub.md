@@ -4,7 +4,7 @@ Repository Management: Create and manage repositories on GitHub to store your ap
 
 CI/CD Pipelines: Leverage GitHub Actions to create CI/CD pipelines that automate the process of building and deploying containerized applications to ARO. This ensures that code changes are tested and deployed consistently
 
-2 Developer Applications On GitHub to ARO:
+2 Developer Applications GitHub to ARO:
 
 Containerization: Use Docker to containerize your applications. Create Dockerfiles to define the application's environment and dependencies. Push the Docker images to a container registry, such as Azure Container Registry (ACR)
 
