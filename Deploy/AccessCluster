@@ -1,4 +1,4 @@
-## Access the OpenShift Console and CLI
+Access the OpenShift Console and CLI
 
 ### Login to the OpenShift Web Console
 
