@@ -73,7 +73,7 @@ As you can see in the diagram, Azure Front Door sits on the edge of the Microsof
 
 Notice that the application is secured! This is done automatically for us by Front Door.
     
-![Microsweeper App](/images/microsweeper-secured.png)
+![Microsweeper App](images/microsweeper-secured.png)
 
 If you remember, one of the benefits of using Azure Front Door is that traffic is sent through and secured at the Microsoft edge, rather than your application. You can get some idea of how the traffic flows by looking at how the DNS for the custom domain is resolving:
 
