@@ -16,7 +16,7 @@ Red Hat OpenShift Service Mesh requires the following four Operators:
 ### Operator installation Procedure
 
 1. In the OpenShift Container Platform web console, click **Operators → OperatorHub.**
-![operator hub](../assets/images/operatorhub.PNG)
+![operator hub](../assets/images/operatorhub.png)
 
 1. Type the name of the Operator into the filter box and select the Red Hat version of the Operator. Community versions of the Operators are not supported.
 
