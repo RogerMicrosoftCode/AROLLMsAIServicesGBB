@@ -1,11 +1,15 @@
-Setting Up GitHub and ARO Integration:
+Setting Up GitHub and Deploying Applications on ARO :
 
 Repository Management: Create and manage repositories on GitHub to store your application's source code. Use GitHub Actions to automate workflows, such as building, testing, and deploying applications to ARO
+
 CI/CD Pipelines: Leverage GitHub Actions to create CI/CD pipelines that automate the process of building and deploying containerized applications to ARO. This ensures that code changes are tested and deployed consistently
 
-Deploying Applications on ARO:
+Developer Applications to ARO:
+
 Containerization: Use Docker to containerize your applications. Create Dockerfiles to define the application's environment and dependencies. Push the Docker images to a container registry, such as Azure Container Registry (ACR)
+
 Kubernetes Deployment: Define Kubernetes manifests (YAML files) to specify the desired state of your applications, including deployments, services, and ingress resources. Use kubectl commands to apply these manifests to your ARO cluster
+
 Monitoring and Scaling:
 Monitoring: Implement monitoring solutions, such as Prometheus and Grafana, to gain insights into the performance and health of your applications running on ARO. Use GitHub's integration with these tools to visualize metrics and set up alerts
 Auto-Scaling: Configure Horizontal Pod Autoscaler (HPA) in ARO to automatically scale the number of pods based on CPU and memory usage. This ensures that your applications can handle varying loads efficiently
