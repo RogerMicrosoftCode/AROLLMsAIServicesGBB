@@ -1,25 +1,21 @@
-Ciclo de vida del soporte técnico de Red Hat OpenShift en Azure 4
+Red Hat OpenShift on Azure Support Lifecycle 4
 
 https://docs.microsoft.com/es-es/azure/openshift/support-lifecycle
 
-
-Restriccion de Usuarios y Grupos Azure AD
+Restricting Azure AD Users and Groups
 
 https://docs.microsoft.com/es-es/azure/active-directory/develop/howto-restrict-your-app-to-a-set-of-users#app-registration
 
-Configuración de la autenticación de Azure Active Directory para un clúster de Red Hat OpenShift en Azure 4 (Portal)
-
+Configure Azure Active Directory authentication for a Red Hat OpenShift cluster on Azure 4 (Portal)
 https://docs.microsoft.com/es-es/azure/openshift/configure-azure-ad-ui
 
-Configuración de la autenticación de Azure Active Directory para un clúster de Red Hat OpenShift 4 en Azure (CLI)
-
+Configuring Azure Active Directory authentication for a Red Hat OpenShift 4 cluster in Azure (CLI)
 https://docs.microsoft.com/es-es/azure/openshift/configure-azure-ad-cli
 
-Configuración del reenvío de DNS en un clúster de Red Hat OpenShift en Azure 4
-
+Configuring DNS forwarding on a Red Hat OpenShift cluster in Azure 4
 https://docs.microsoft.com/es-es/azure/openshift/dns-forwarding
 
-Videos de documentacion importantes.
+Important documentation videos.
 https://www.openshift.com/blog/openshift-4-x-installation-a-quick-overview
 
 
@@ -27,7 +23,7 @@ ARO CORP PARA TEST
 
 https://oauth-openshift.apps.yq1h7kpq.westus2.aroapp.io/oauth/authorize?client_id=console&redirect_uri=https%3A%2F%2Fconsole-openshift-console.apps.yq1h7kpq.westus2.aroapp.io%2Fauth%2Fcallback&response_type=code&scope=user%3Afull&state=7d9aff85
 
-Soporte Alcnaces
+Support Scopes
 https://docs.microsoft.com/es-es/azure/openshift/support-policies-v4
 
 Link FAQ

@@ -1,16 +1,16 @@
-Link de documentuntacion de comandos pas update de certificado.
+Documentation link for certificate update commands.
 https://docs.openshift.com/aro/4/welcome/index.html
 
 
-Como manejar los Certificados
+How to manage Certificates
 
 openssl pkcs12 -in INFILE.p12 -out OUTFILE.key -nodes -nocerts
 openssl pkcs12 -in INFILE.p12 -out OUTFILE.crt -nokeys
 
-Entidad CA Opensource
+CA Opensource Entity
 ejbca
 
-*****Muy importante Debe tener el atributo de Nombre Alternativo Del sujeto Identico al WildCard*******
+*****Very important You must have the Subject Alternative Name attribute identical to the WildCard*******
 
 
 
@@ -18,7 +18,7 @@ https://docs.openshift.com/container-platform/4.6/security/certificates/replacin
 
 
 
-Ejemplo de Salida de comandos.
+Command Output Example.
 
 root@Debian:/home/rooliva# oc create configmap custom-ca --from-file=ca-bundle.crt=OUTFILE.crt -n openshift-config
 configmap/custom-ca created
