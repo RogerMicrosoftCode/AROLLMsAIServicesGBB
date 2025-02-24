@@ -1,16 +1,13 @@
 # AROLLMsAIServicesGBB
 Best Practices Repository and Workshop AI Services and LMMS Apps, Running on ARO.
 
+Requiremets
 
-Deploy
+1 Deploy ARO
 
-AppsDemo
+2 Apps Deploy
 
-MLOps
-
-Workshop
-
-Tips
+3 Tips and Trick
 
 
 
