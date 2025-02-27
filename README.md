@@ -1,4 +1,4 @@
-# AI Services and LLMs Apps Running on ARO
+# Apps Services and LLMs Apps Running on ARO, and use CI CD GitHub
 
 <div align="center">
   <img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" height="80" alt="Azure Logo">
