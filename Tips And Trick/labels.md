@@ -4,7 +4,7 @@ Labels are a useful way to select which nodes that an application will run on. T
 
 While you can directly add a label to a node, it is not recommended because nodes can be recreated, which would cause the label to disappear. Therefore we need to label the MachineSet itself. An important caveat to this process is that only **new machines** created by the MachineSet will get the label. This means you will need to either scale the MachineSet down to zero then back up to create new machines with the label, or you can label the existing machines directly.
 
-## Set a label for the MachineSet
+## Set a label for the Machinset for ARO
 
 1. Just like the last section, let's pick a MachineSet to add our label. To do so, run the following command:
 
