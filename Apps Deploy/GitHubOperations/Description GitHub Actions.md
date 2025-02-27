@@ -1,53 +1,36 @@
-<header>
+# Deploying Microservices to OpenShift with GitHub Actions
 
-# Hello GitHub Actions
+## Introduction
 
-_Create and run a GitHub Actions workflow._
+This guide provides a comprehensive walkthrough for automating microservice deployments to OpenShift Container Platform (OSE) using GitHub Actions. By establishing a CI/CD pipeline between your GitHub repository and OpenShift environment, you can achieve consistent, reliable, and efficient deployments with minimal manual intervention.
 
-</header>
+## Why Use GitHub Actions with OpenShift?
 
-## Step 1: Create a workflow file
+Integrating GitHub Actions with OpenShift offers several key benefits:
 
-_Welcome to "Hello GitHub Actions"! :wave:_
+- **Automation**: Eliminate manual deployment steps and reduce human error
+- **Consistency**: Ensure deployments follow the same process every time
+- **Traceability**: Track deployments through commit history and workflow runs
+- **Flexibility**: Customize deployment processes to suit your specific needs
+- **Security**: Manage sensitive credentials through GitHub's secret management
 
-**What is _GitHub Actions_?**: GitHub Actions is a flexible way to automate nearly every aspect of your team's software workflow. You can automate testing, continuously deploy, review code, manage issues and pull requests, and much more. The best part, these workflows are stored as code in your repository and easily shared and reused across teams. To learn more, check out these resources:
+## Getting Started
 
-- The GitHub Actions feature page, see [GitHub Actions](https://github.com/features/actions).
-- The "GitHub Actions" user documentation, see [GitHub Actions](https://docs.github.com/actions).
+Before you begin setting up your deployment pipeline, ensure you have:
 
-**What is a _workflow_?**: A workflow is a configurable automated process that will run one or more jobs. Workflows are defined in special files in the `.github/workflows` directory and they execute based on your chosen event. For this exercise, we'll use a `pull_request` event.
+- An active OpenShift Container Platform account with appropriate permissions
+- A GitHub repository containing your microservice code
+- Basic familiarity with YAML syntax and GitHub workflows
 
-- To read more about workflows, jobs, and events, see "[Understanding GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions)".
-- If you want to learn more about the `pull_request` event before using it, see "[pull_request](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request)".
+## Setup Process Overview
 
-To get you started, we ran an Actions workflow in your new repository that, among other things, created a branch for you to work in, called `welcome-workflow`.
+The deployment setup consists of three main steps:
 
-### :keyboard: Activity: Create a workflow file
+1. **OpenShift Project Configuration**: Prepare your OpenShift environment
+2. **GitHub Repository Setup**: Organize your application code and deployment configurations
+3. **GitHub Actions Workflow Creation**: Define the automated deployment process
+4. **Security Configuration**: Set up secure credential management
 
-1. Open a new browser tab, and navigate to this same repository. Then, work on the steps in your second tab while you read the instructions in this tab.
-1. Create a pull request. This will contain all of the changes you'll make throughout this part of the course.
+Each step is critical for establishing a robust deployment pipeline that meets both your technical and operational requirements.
 
-   Click the **Pull Requests** tab, click **New pull request**, set `base: main` and `compare:welcome-workflow`, click **Create pull request**, then click **Create pull request** again.
-
-1. Navigate to the **Code** tab.
-1. From the **main** branch dropdown, click on the **welcome-workflow** branch.
-1. Navigate to the `.github/workflows/` folder, then select **Add file** and click on **Create new file**.
-1. In the **Name your file** field, enter `welcome.yml`.
-1. Add the following content to the `welcome.yml` file:
-
-   ```yaml copy
-   name: Post welcome comment
-   on:
-     pull_request:
-       types: [opened]
-   permissions:
-     pull-requests: write
-   ```
-
-1. To commit your changes, click **Commit changes**.
-1. Type a commit message, select **Commit directly to the welcome-workflow branch** and click **Commit changes**.
-1. Wait about 20 seconds, then refresh this page (the one you're following instructions from). A separate Actions workflow in the repository (not the workflow you created) will run and will automatically replace the contents of this README file with instructions for the next step.
-
-<footer>
-
-</footer>
+Follow the detailed instructions in the subsequent sections to complete your setup. Once configured, your microservices will automatically deploy to OpenShift whenever changes are pushed to your specified branch.
