@@ -6,15 +6,15 @@
   <img src="https://avatars.githubusercontent.com/u/792337?s=200&v=4" height="80" alt="Red Hat OpenShift Logo">
 </div>
 
-## Best Practices Repository and Workshop AI Services and LLMs Apps, Running on ARO
+## Best Practices Repository and Workshop Services APPS , Running on ARO
 
-Welcome to our comprehensive workshop on deploying AI Services and Large Language Models on Azure Red Hat OpenShift (ARO). This hands-on workshop will guide you through deploying an ARO cluster, running AI applications, and implementing industry best practices for production-ready deployments.
+Welcome to our comprehensive workshop on deploying AI Services and Large Language Models on Azure Red Hat OpenShift (ARO). This hands-on workshop will guide you through deploying an ARO cluster, running applications, and implementing industry best practices for production-ready deployments.
 
 ### Workshop Modules
 
 #### 1️⃣ Deploy ARO
 
-Learn how to deploy and configure a production-ready Azure Red Hat OpenShift cluster optimized for AI workloads.
+Learn how to deploy and configure a production-ready Azure Red Hat OpenShift cluster optimized for workloads.
 
 - ARO cluster
 
@@ -30,7 +30,7 @@ Deploy and manage AI and LLM applications on your ARO cluster with these proven 
 
 #### 3️⃣ Tips and Tricks ARO
 
-Master advanced techniques and optimizations for running AI workloads on ARO.
+Master advanced techniques and optimizations for running workloads on ARO.
 
 
 ### Getting Started
