@@ -16,7 +16,13 @@ Welcome to our comprehensive workshop on deploying AI Services and Large Languag
 
 Learn how to deploy and configure a production-ready Azure Red Hat OpenShift cluster optimized for workloads.
 
-- ARO cluster
+ARO cluster 
+
+- Create an Azure account
+- Service Principal
+- Cluster Installation
+- Login to the OpenShift Web Console
+- Configuring Azure AD for Cluster authentication
 
 
 #### 2️⃣ Apps Deploy
