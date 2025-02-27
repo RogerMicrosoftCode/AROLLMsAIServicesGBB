@@ -16,17 +16,15 @@ Welcome to our comprehensive workshop on deploying AI Services and Large Languag
 
 Learn how to deploy and configure a production-ready Azure Red Hat OpenShift cluster optimized for AI workloads.
 
-- ARO cluster architecture fundamentals
-- Setting up networking for AI services
-- Configuring storage for large models
-- Security best practices for AI workloads
+- ARO cluster
+
 
 #### 2️⃣ Apps Deploy
 
 Deploy and manage AI and LLM applications on your ARO cluster with these proven techniques.
 
-- Containerizing AI workloads
-- Implementing CI/CD for AI applications
+- Containerizing workloads
+- Implementing CI/CD for applications
 - Scaling strategies for LLM inference
 - Integrating with Azure AI services
 
@@ -34,10 +32,6 @@ Deploy and manage AI and LLM applications on your ARO cluster with these proven 
 
 Master advanced techniques and optimizations for running AI workloads on ARO.
 
-- Performance tuning for ML operations
-- Resource management strategies
-- Monitoring and observability for AI apps
-- Cost optimization techniques
 
 ### Getting Started
 
@@ -52,26 +46,21 @@ To get started with this workshop:
 
 All workshop materials are organized in the following directories:
 
-- [`/labs`](./labs): Step-by-step lab instructions
-- [`/demos`](./demos): Example applications and code
-- [`/slides`](./slides): Presentation slides
-- [`/resources`](./resources): Additional resources and reference materials
 
 ### Prerequisites
 
 - Azure subscription with Contributor access
 - Basic familiarity with Kubernetes concepts
-- Docker installed locally
 - Azure CLI configured
 
 ### Contributors
 
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/jrwarriorgit"><img src="https://github.com/identicons/username1.png" width="100px;" alt=""/><br /><sub><b>Contributor 1</b></sub></a></td>
-    <td align="center"><a href="https://github.com/tinocoh"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Contributor 2</b></sub></a></td>
-    <td align="center"><a href="https://github.com/RogerMicrosoftCode"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Contributor 3</b></sub></a></td>
-    <td align="center"><a href="https://github.com/dsanchezcr"><img src="https://github.com/identicons/username3.png" width="100px;" alt=""/><br /><sub><b>Contributor 4</b></sub></a></td>
+    <td align="center"><a href="https://github.com/jrwarriorgit"><img src="https://github.com/identicons/username1.png" width="100px;" alt=""/><br /><sub><b>Raul Gerrero</b></sub></a></td>
+    <td align="center"><a href="https://github.com/tinocoh"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Humberto Tinoco</b></sub></a></td>
+    <td align="center"><a href="https://github.com/RogerMicrosoftCode"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Rogelio Oliva</b></sub></a></td>
+    <td align="center"><a href="https://github.com/dsanchezcr"><img src="https://github.com/identicons/username3.png" width="100px;" alt=""/><br /><sub><b>David Sanchez</b></sub></a></td>
   </tr>
 </table>
 
