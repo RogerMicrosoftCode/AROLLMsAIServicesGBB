@@ -1,7 +1,7 @@
 # AI Services and LLMs Apps Running on ARO
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/Azure.png" height="80" alt="Azure Logo">
+  <img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" height="80" alt="Azure Logo">
   &nbsp;&nbsp;&nbsp;
   <img src="https://avatars.githubusercontent.com/u/792337?s=200&v=4" height="80" alt="Red Hat OpenShift Logo">
 </div>
