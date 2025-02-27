@@ -4,6 +4,8 @@
   <img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" height="80" alt="Azure Logo">
   &nbsp;&nbsp;&nbsp;
   <img src="https://avatars.githubusercontent.com/u/792337?s=200&v=4" height="80" alt="Red Hat OpenShift Logo">
+  &nbsp;&nbsp;&nbsp; 
+  <img src="https://toppng.com/uploads/preview/github-logo-png-free-11659780104wmzuvwmxm3.png" height="80" alt="Github Logo">
 </div>
 
 ## Best Practices Repository and Workshop Services APPS , Running on ARO
