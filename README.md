@@ -68,9 +68,10 @@ All workshop materials are organized in the following directories:
 
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/username1"><img src="https://github.com/identicons/username1.png" width="100px;" alt=""/><br /><sub><b>Contributor 1</b></sub></a></td>
-    <td align="center"><a href="https://github.com/username2"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Contributor 2</b></sub></a></td>
-    <td align="center"><a href="https://github.com/username3"><img src="https://github.com/identicons/username3.png" width="100px;" alt=""/><br /><sub><b>Contributor 3</b></sub></a></td>
+    <td align="center"><a href="https://github.com/jrwarriorgit"><img src="https://github.com/identicons/username1.png" width="100px;" alt=""/><br /><sub><b>Contributor 1</b></sub></a></td>
+    <td align="center"><a href="https://github.com/tinocoh"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Contributor 2</b></sub></a></td>
+    <td align="center"><a href="https://github.com/RogerMicrosoftCode"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Contributor 3</b></sub></a></td>
+    <td align="center"><a href="https://github.com/dsanchezcr"><img src="https://github.com/identicons/username3.png" width="100px;" alt=""/><br /><sub><b>Contributor 4</b></sub></a></td>
   </tr>
 </table>
 
