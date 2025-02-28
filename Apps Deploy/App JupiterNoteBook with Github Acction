@@ -1,6 +1,6 @@
-# Despliegue de Jupyter Notebook en OpenShift con GitHub Actions
+# 🚀 Despliegue de Jupyter Notebook en OpenShift con GitHub Actions
 
-## Preparación del entorno
+## 🔍 Preparación del entorno
 
 Antes de comenzar, necesitarás:
 
@@ -8,7 +8,7 @@ Antes de comenzar, necesitarás:
 2. Acceso a un clúster OpenShift
 3. Una cuenta con permisos para crear aplicaciones en OpenShift
 
-## Estructura de archivos recomendada
+## 📁 Estructura de archivos recomendada
 
 Para un despliegue efectivo, tu repositorio debería contener:
 
@@ -25,7 +25,7 @@ Para un despliegue efectivo, tu repositorio debería contener:
     └── route.yaml
 ```
 
-## Creación del Dockerfile
+## 🐳 Creación del Dockerfile
 
 Primero, crea un Dockerfile que construya tu imagen de Jupyter:
 
@@ -65,9 +65,9 @@ EXPOSE 8888
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''", "--NotebookApp.password=''"]
 ```
 
-## Archivos de configuración de OpenShift
+## ⚙️ Archivos de configuración de OpenShift
 
-### `openshift/deployment.yaml`
+### 🔄 `openshift/deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -103,7 +103,7 @@ spec:
           value: "yes"
 ```
 
-### `openshift/service.yaml`
+### 🌐 `openshift/service.yaml`
 
 ```yaml
 apiVersion: v1
@@ -119,7 +119,7 @@ spec:
   type: ClusterIP
 ```
 
-### `openshift/route.yaml`
+### 🔌 `openshift/route.yaml`
 
 ```yaml
 apiVersion: route.openshift.io/v1
@@ -137,7 +137,7 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
 ```
 
-## Flujo de trabajo de GitHub Actions
+## 🔄 Flujo de trabajo de GitHub Actions
 
 Ahora, crea el archivo `.github/workflows/deploy-jupyter.yml`:
 
@@ -232,7 +232,7 @@ jobs:
           echo "🔗 Accede a tu Jupyter Notebook: $NOTEBOOK_URL"
 ```
 
-## Configuración de secretos en GitHub
+## 🔐 Configuración de secretos en GitHub
 
 Configura los siguientes secretos en tu repositorio de GitHub:
 
@@ -244,9 +244,9 @@ Configura los siguientes secretos en tu repositorio de GitHub:
 6. `REGISTRY_USERNAME`: Usuario para el registro de imágenes
 7. `REGISTRY_PASSWORD`: Contraseña para el registro de imágenes
 
-## Consideraciones adicionales
+## 💡 Consideraciones adicionales
 
-### Seguridad
+### 🛡️ Seguridad
 
 Para un entorno de producción, considera:
 
@@ -254,7 +254,7 @@ Para un entorno de producción, considera:
 - Configurar autenticación adecuada para Jupyter
 - Utilizar secretos de OpenShift para credenciales sensibles
 
-### Persistencia
+### 💾 Persistencia
 
 Para datos persistentes, agrega un PersistentVolumeClaim:
 
@@ -286,7 +286,7 @@ containers:
     name: jupyter-data
 ```
 
-### Personalización avanzada
+### ⚡ Personalización avanzada
 
 - Agrega extensiones de Jupyter y JupyterLab en el Dockerfile
 - Configura variables de entorno para personalizar el comportamiento
