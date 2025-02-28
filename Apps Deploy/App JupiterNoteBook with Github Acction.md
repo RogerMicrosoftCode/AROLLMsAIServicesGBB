@@ -1,73 +1,73 @@
-# 🚀 Despliegue de Jupyter Notebook en OpenShift con GitHub Actions
+# 🚀 Deploying Jupyter Notebook to OpenShift with GitHub Actions
 
-## 🔍 Preparación del entorno
+## 🔍 Environment Preparation
 
-Antes de comenzar, necesitarás:
+Before you begin, you'll need:
 
-1. Un repositorio de GitHub con tu aplicación Jupyter Notebook
-2. Acceso a un clúster OpenShift
-3. Una cuenta con permisos para crear aplicaciones en OpenShift
+1. A GitHub repository with your Jupyter Notebook application
+2. Access to an OpenShift cluster
+3. An account with permissions to create applications in OpenShift
 
-## 📁 Estructura de archivos recomendada
+## 📁 Recommended File Structure
 
-Para un despliegue efectivo, tu repositorio debería contener:
+For effective deployment, your repository should contain:
 
 ```
 ├── .github/
 │   └── workflows/
 │       └── deploy-jupyter.yml
-├── notebooks/                   # Tus notebooks de Jupyter
-├── requirements.txt             # Dependencias de Python
-├── Dockerfile                   # Para construir la imagen
-└── openshift/                   # Configuraciones para OpenShift
+├── notebooks/                   # Your Jupyter notebooks
+├── requirements.txt             # Python dependencies
+├── Dockerfile                   # To build the image
+└── openshift/                   # OpenShift configurations
     ├── deployment.yaml
     ├── service.yaml
     └── route.yaml
 ```
 
-## 🐳 Creación del Dockerfile
+## 🐳 Creating the Dockerfile
 
-Primero, crea un Dockerfile que construya tu imagen de Jupyter:
+First, create a Dockerfile to build your Jupyter image:
 
 ```dockerfile
 FROM jupyter/scipy-notebook:latest
 
-# Argumentos para la personalización
+# Arguments for customization
 ARG NB_USER="jovyan"
 ARG NB_UID="1000"
 ARG NB_GID="100"
 
 USER root
 
-# Instala dependencias adicionales
+# Install additional dependencies
 COPY requirements.txt /tmp/
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Copia los notebooks
+# Copy notebooks
 COPY notebooks/ /home/$NB_USER/work/
 
-# Configura permisos para OpenShift
+# Configure permissions for OpenShift
 RUN chown -R $NB_USER:$NB_GID /home/$NB_USER/work/ && \
     chmod -R 775 /home/$NB_USER/work/
 
-# Configura para ejecutar como usuario arbitrario en OpenShift
-# Esto es importante para la seguridad en OpenShift
+# Set up to run as arbitrary user in OpenShift
+# This is important for security in OpenShift
 RUN chmod -R g+w /home/$NB_USER && \
     fix-permissions /home/$NB_USER
 
 USER $NB_UID
 
-# Puerto por defecto para Jupyter
+# Default port for Jupyter
 EXPOSE 8888
 
-# Configura el comando para iniciar sin token/contraseña en entorno de producción
-# Adapta según tus necesidades de seguridad
+# Configure command to start without token/password in production environment
+# Adapt according to your security needs
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''", "--NotebookApp.password=''"]
 ```
 
-## ⚙️ Archivos de configuración de OpenShift
+## ⚙️ OpenShift Configuration Files
 
-### 🔄 `openshift/deployment.yaml`
+### `openshift/deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -103,7 +103,7 @@ spec:
           value: "yes"
 ```
 
-### 🌐 `openshift/service.yaml`
+### `openshift/service.yaml`
 
 ```yaml
 apiVersion: v1
@@ -119,7 +119,7 @@ spec:
   type: ClusterIP
 ```
 
-### 🔌 `openshift/route.yaml`
+### `openshift/route.yaml`
 
 ```yaml
 apiVersion: route.openshift.io/v1
@@ -137,9 +137,9 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
 ```
 
-## 🔄 Flujo de trabajo de GitHub Actions
+## 🔄 GitHub Actions Workflow
 
-Ahora, crea el archivo `.github/workflows/deploy-jupyter.yml`:
+Now, create the `.github/workflows/deploy-jupyter.yml` file:
 
 ```yaml
 name: Deploy Jupyter Notebook to OpenShift
@@ -156,7 +156,7 @@ env:
 on:
   push:
     branches:
-      - main  # o master, según tu configuración
+      - main  # or master, depending on your configuration
 
 jobs:
   build-and-deploy:
@@ -202,61 +202,61 @@ jobs:
 
       - name: Process template files
         run: |
-          # Reemplazar ${IMAGE_URL} en los archivos YAML
+          # Replace ${IMAGE_URL} in YAML files
           find openshift -type f -name "*.yaml" -exec sed -i "s|\${IMAGE_URL}|$IMAGE_URL|g" {} \;
 
       - name: Deploy to OpenShift
         run: |
-          # Verificar si ya existe el despliegue
+          # Check if deployment already exists
           if oc get deployment ${{ env.APP_NAME }} -n ${{ env.OPENSHIFT_NAMESPACE }} &>/dev/null; then
-            echo "Actualizando despliegue existente..."
+            echo "Updating existing deployment..."
             oc apply -f openshift/deployment.yaml -n ${{ env.OPENSHIFT_NAMESPACE }}
           else
-            echo "Creando nuevo despliegue..."
+            echo "Creating new deployment..."
             oc apply -f openshift/ -n ${{ env.OPENSHIFT_NAMESPACE }}
           fi
           
-          # Esperar a que el despliegue esté listo
+          # Wait for deployment to be ready
           oc rollout status deployment/${{ env.APP_NAME }} -n ${{ env.OPENSHIFT_NAMESPACE }} --timeout=300s
 
       - name: Get Route URL
         if: success()
         run: |
           ROUTE_HOST=$(oc get route ${{ env.APP_NAME }} -n ${{ env.OPENSHIFT_NAMESPACE }} -o jsonpath='{.spec.host}')
-          echo "Jupyter Notebook disponible en: https://$ROUTE_HOST"
+          echo "Jupyter Notebook available at: https://$ROUTE_HOST"
           echo "NOTEBOOK_URL=https://$ROUTE_HOST" >> $GITHUB_ENV
 
       - name: Post Deployment Info
         run: |
-          echo "✅ Despliegue completado correctamente"
-          echo "🔗 Accede a tu Jupyter Notebook: $NOTEBOOK_URL"
+          echo "✅ Deployment completed successfully"
+          echo "🔗 Access your Jupyter Notebook: $NOTEBOOK_URL"
 ```
 
-## 🔐 Configuración de secretos en GitHub
+## 🔐 Setting up GitHub Secrets
 
-Configura los siguientes secretos en tu repositorio de GitHub:
+Configure the following secrets in your GitHub repository:
 
-1. `OPENSHIFT_SERVER`: URL del servidor OpenShift
-2. `OPENSHIFT_TOKEN`: Token de acceso a OpenShift
-3. `OPENSHIFT_NAMESPACE`: Namespace/proyecto donde desplegar
-4. `IMAGE_REGISTRY`: Registro de imágenes (ej. quay.io, registry.redhat.io)
-5. `IMAGE_REPOSITORY`: Repositorio dentro del registro
-6. `REGISTRY_USERNAME`: Usuario para el registro de imágenes
-7. `REGISTRY_PASSWORD`: Contraseña para el registro de imágenes
+1. `OPENSHIFT_SERVER`: OpenShift server URL
+2. `OPENSHIFT_TOKEN`: OpenShift access token
+3. `OPENSHIFT_NAMESPACE`: Namespace/project for deployment
+4. `IMAGE_REGISTRY`: Image registry (e.g., quay.io, registry.redhat.io)
+5. `IMAGE_REPOSITORY`: Repository within the registry
+6. `REGISTRY_USERNAME`: Username for the image registry
+7. `REGISTRY_PASSWORD`: Password for the image registry
 
-## 💡 Consideraciones adicionales
+## 💡 Additional Considerations
 
-### 🛡️ Seguridad
+### 🛡️ Security
 
-Para un entorno de producción, considera:
+For a production environment, consider:
 
-- No usar `--NotebookApp.token=''` en el Dockerfile
-- Configurar autenticación adecuada para Jupyter
-- Utilizar secretos de OpenShift para credenciales sensibles
+- Not using `--NotebookApp.token=''` in the Dockerfile
+- Setting up proper authentication for Jupyter
+- Using OpenShift secrets for sensitive credentials
 
-### 💾 Persistencia
+### 💾 Persistence
 
-Para datos persistentes, agrega un PersistentVolumeClaim:
+For persistent data, add a PersistentVolumeClaim:
 
 ```yaml
 apiVersion: v1
@@ -271,7 +271,7 @@ spec:
       storage: 5Gi
 ```
 
-Y actualiza el deployment para montarlo:
+And update the deployment to mount it:
 
 ```yaml
 volumes:
@@ -280,14 +280,14 @@ volumes:
     claimName: jupyter-data
 containers:
 - name: jupyter-notebook
-  # ... otras configuraciones ...
+  # ... other configurations ...
   volumeMounts:
   - mountPath: "/home/jovyan/work/data"
     name: jupyter-data
 ```
 
-### ⚡ Personalización avanzada
+### ✨ Advanced Customization
 
-- Agrega extensiones de Jupyter y JupyterLab en el Dockerfile
-- Configura variables de entorno para personalizar el comportamiento
-- Utiliza ConfigMaps para archivos de configuración
+- Add Jupyter and JupyterLab extensions in the Dockerfile
+- Configure environment variables to customize behavior
+- Use ConfigMaps for configuration files
