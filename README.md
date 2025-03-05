@@ -14,7 +14,7 @@ Welcome to our comprehensive workshop on deploying AI Services and Large Languag
 
 ### Workshop Modules
 
-#### 1️⃣ Deploy ARO
+#### 1️⃣ [Deploy ARO](Deploy%20ARO/README.md)
 
 Learn how to deploy and configure a production-ready Azure Red Hat OpenShift cluster optimized for workloads.
 
