@@ -9,6 +9,7 @@ This guide showcases various application examples that can be deployed in Azure 
 - [🧠 MLOps Application Examples](#-mlops-application-examples)
 - [🌐 Microsweeper with Azure Front Door](#-microsweeper-with-azure-front-door)
 - [🔄 Application with Redis Cache](#-application-with-redis-cache)
+- [🔄 GitHub Operations](#-github-operations)
 
 ## 🎮 Microsweeper Java Application
 
@@ -70,3 +71,15 @@ Deployment of a voting application that uses Azure Cache for Redis:
 - Deploying a Python/Flask web application
 - Configuring application to use Azure Redis for data persistence
 - Managing Azure resources directly from OpenShift
+
+## 🔄 GitHub Operations
+
+[View Example](GitHub%20Operations.md)
+
+Integration of GitHub operations with Azure Red Hat OpenShift:
+
+- Setting up GitHub webhooks for OpenShift deployments
+- Implementing CI/CD pipelines with GitHub Actions
+- Using GitHub as a source for OpenShift builds
+- Managing secrets between GitHub and OpenShift
+- Automating deployment workflows
