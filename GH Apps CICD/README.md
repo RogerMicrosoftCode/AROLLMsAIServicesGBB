@@ -74,7 +74,7 @@ Deployment of a voting application that uses Azure Cache for Redis:
 
 ## 🔄 GitHub Operations
 
-[View Example](GitHub%20Operations.md)
+[View Example](GitHubOperations/README.md)
 
 Integration of GitHub operations with Azure Red Hat OpenShift:
 
