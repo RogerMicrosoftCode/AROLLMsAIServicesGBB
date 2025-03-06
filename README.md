@@ -27,7 +27,7 @@ ARO cluster
 - Configuring Azure AD for Cluster authentication
 
 
-#### 2️⃣ Apps Deploy
+#### 2️⃣ [Apps  GH Apps CICD](GH%20Apps%20CICD/README.md)
 
 Deploy and manage AI and LLM applications on your ARO cluster with these proven techniques.
 
