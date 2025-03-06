@@ -21,7 +21,7 @@ Learn how to deploy and configure a production-ready Azure Red Hat OpenShift clu
 - Configuring storage for large models
 - Security best practices for AI workloads
 
-#### 2️⃣ [Apps GH Apps CICD](GH%20Apps%20CICD/README.md)
+#### 2️⃣ [Apps  GH Apps CICD](GH%20Apps%20CICD/README.md)
 
 Deploy and manage AI and LLM applications on your ARO cluster with these proven techniques.
 
