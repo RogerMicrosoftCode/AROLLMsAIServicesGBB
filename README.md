@@ -82,6 +82,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   <p>
     <a href="https://azure.microsoft.com/en-us/services/openshift/">Azure Red Hat OpenShift</a> |
     <a href="https://learn.microsoft.com/en-us/azure/openshift/">Documentation</a> |
-    <a href="https://github.com/AROLLMsAIServicesGBB/Issues.md">Report Issues</a>
+    <a href="https://github.com/RogerMicrosoftCode/AROLLMsAIServicesGBB/blob/main/Issues.md">Report Issues</a>
   </p>
 </div>
