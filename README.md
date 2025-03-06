@@ -47,8 +47,7 @@ To get started with this workshop:
 
 1. Ensure you have an active Azure subscription
 2. Clone this repository: `git clone https://github.com/AROLLMsAIServicesGBB/workshop.git`
-3. Follow the instructions in the [prerequisites](./docs/prerequisites.md) document
-4. Join our [community discussions](https://github.com/AROLLMsAIServicesGBB/workshop/discussions)
+3. Follow the instructions in the [prerequisites](Requerimientos.md) document
 
 ### Workshop Materials
 

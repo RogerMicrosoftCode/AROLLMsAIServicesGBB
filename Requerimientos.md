@@ -5,7 +5,7 @@
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/OpenShift-LogoType.svg/1200px-OpenShift-LogoType.svg.png" alt="OpenShift Logo" width="150"/>
    &nbsp;&nbsp;&nbsp; 
-  <img src="https://logodix.com/logo/64432.png" height="80" alt="Github Logo">
+  <img src="https://logodix.com/logo/64432.png" height="150" alt="Github Logo">
 </div>
 
 This document describes the minimum requirements and configuration needed to work with Azure CLI and OpenShift Client (OC).
