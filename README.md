@@ -65,9 +65,9 @@ All workshop materials are organized in the following directories:
 <table>
   <tr>
     <td align="center"><a href="https://github.com/jrwarriorgit"><img src="https://avatars.githubusercontent.com/u/12968898?v=4" width="100px;" alt=""/><br /><sub><b>Raul Gerrero</b></sub></a></td>
-    <td align="center"><a href="https://github.com/tinocoh"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Humberto Tinoco</b></sub></a></td>
-    <td align="center"><a href="https://github.com/RogerMicrosoftCode"><img src="https://github.com/identicons/username2.png" width="100px;" alt=""/><br /><sub><b>Rogelio Oliva</b></sub></a></td>
-    <td align="center"><a href="https://github.com/dsanchezcr"><img src="https://github.com/identicons/username3.png" width="100px;" alt=""/><br /><sub><b>David Sanchez</b></sub></a></td>
+    <td align="center"><a href="https://github.com/tinocoh"><img src="https://avatars.githubusercontent.com/u/53500878?v=4" width="100px;" alt=""/><br /><sub><b>Humberto Tinoco</b></sub></a></td>
+    <td align="center"><a href="https://github.com/RogerMicrosoftCode"><img src="https://avatars.githubusercontent.com/u/79107288?v=4" width="100px;" alt=""/><br /><sub><b>Rogelio Oliva</b></sub></a></td>
+    <td align="center"><a href="https://github.com/dsanchezcr"><img src="https://avatars.githubusercontent.com/u/10506023?v=4" width="100px;" alt=""/><br /><sub><b>David Sanchez</b></sub></a></td>
   </tr>
 </table>
 
