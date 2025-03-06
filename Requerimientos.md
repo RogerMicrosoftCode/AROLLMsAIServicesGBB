@@ -238,7 +238,7 @@ code --install-extension ms-vscode.PowerShell
 
 ## 📊 GitHub and GitHub Desktop
 
-<img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" width="40" style="vertical-align: middle;"/> &nbsp; **GitHub and GitHub Desktop**
+<img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" alt="GitHub Logo" width="40" style="vertical-align: middle;"/> &nbsp; **GitHub and GitHub Desktop**
 
 ### GitHub CLI
 
