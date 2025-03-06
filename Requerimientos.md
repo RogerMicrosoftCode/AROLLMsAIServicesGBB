@@ -1,7 +1,7 @@
 # Requirements and Configuration for Azure CLI and OpenShift Client
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Azure/azure-cli/dev/doc/sphinx/media/AzureCloudShellImage.png" alt="Azure CLI Logo" width="150"/>
+  <img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" alt="Azure CLI Logo" width="150"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/OpenShift-LogoType.svg/1200px-OpenShift-LogoType.svg.png" alt="OpenShift Logo" width="150"/>
 </div>
@@ -25,7 +25,7 @@ This document describes the minimum requirements and configuration needed to wor
 
 ## 🔧 Azure CLI Installation
 
-<img src="https://raw.githubusercontent.com/Azure/azure-cli/dev/doc/sphinx/media/AzureCloudShellImage.png" alt="Azure CLI Logo" width="40" style="vertical-align: middle;"/> &nbsp; **Azure Command Line Interface**
+<img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" alt="Azure CLI Logo" width="40" style="vertical-align: middle;"/> &nbsp; **Azure Command Line Interface**
 
 ### Windows
 
