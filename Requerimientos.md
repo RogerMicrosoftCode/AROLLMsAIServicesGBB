@@ -4,6 +4,8 @@
   <img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" alt="Azure CLI Logo" width="150"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/OpenShift-LogoType.svg/1200px-OpenShift-LogoType.svg.png" alt="OpenShift Logo" width="150"/>
+   &nbsp;&nbsp;&nbsp; 
+  <img src="https://logodix.com/logo/64432.png" height="80" alt="Github Logo">
 </div>
 
 This document describes the minimum requirements and configuration needed to work with Azure CLI and OpenShift Client (OC).
@@ -238,7 +240,7 @@ code --install-extension ms-vscode.PowerShell
 
 ## 📊 GitHub and GitHub Desktop
 
-<img src="https://avatars.githubusercontent.com/u/6844498?s=200&v=4" alt="GitHub Logo" width="40" style="vertical-align: middle;"/> &nbsp; **GitHub and GitHub Desktop**
+<img src="https://desktop.github.com/images/desktop-icon.svg" alt="GitHub Logo" width="40" style="vertical-align: middle;"/> &nbsp; **GitHub and GitHub Desktop**
 
 ### GitHub CLI
 
