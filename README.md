@@ -36,7 +36,7 @@ Deploy and manage AI and LLM applications on your ARO cluster with these proven 
 - Scaling strategies for LLM inference
 - Integrating with Azure AI services
 
-#### 3️⃣ Tips and Tricks ARO
+#### 3️⃣ [Tips and Tricks ARO](Tips%20And%20Trick/README.md)
 
 Master advanced techniques and optimizations for running workloads on ARO.
 
