@@ -35,7 +35,7 @@ Save this information securely as you'll need it later.
 
 If you encounter an error like:
 ```
-Credential lifetime exceeds the max value allowed as per assigned policy '9d2624cb-b59a-459a-bb1a-31e4ec43bf74'.
+Credential lifetime exceeds the max value allowed as per assigned policy '9d2624cb-b59a-459a-bb1a-XXXXXXXXXXX'.
 ```
 
 This means your Azure AD tenant has a policy restricting credential lifetimes. You need to specify a shorter credential expiration time with the `--years` flag. For example:
