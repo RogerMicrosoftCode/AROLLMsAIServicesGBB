@@ -43,6 +43,8 @@ Access the OpenShift Console and CLI
     "${AZ_RG}" -o tsv --query consoleProfile
     ```
 
+az aro list-credentials --name $CLUSTER --resource-group $RESOURCEGROUP
+
 1. Finally, open the link to the console provided in a separate tab, and login with the provided credentials.
 
 ### Login to the OpenShift CLI
