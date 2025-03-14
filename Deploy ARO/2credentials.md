@@ -45,13 +45,6 @@ This means your Azure AD tenant has a policy restricting credential lifetimes. Y
 az ad sp create-for-rbac -n "${PREFIX}arosp" --years 1
 ```
 
-Or for an even shorter duration:
-
-```sh
-# Create a service principal with credentials valid for 6 months
-az ad sp create-for-rbac -n "${PREFIX}arosp" --months 6
-```
-
 If you still encounter issues, check with your Azure AD administrator about the specific credential lifetime policies in your organization.
 
 ## Step 2: Request Permissions for the Service Principal
