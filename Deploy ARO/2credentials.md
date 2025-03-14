@@ -9,6 +9,9 @@ outlined here:
 
 You can create a Service Principal using the Azure [portal][sp-create-portal] or the Azure [cli][sp-create-cli]
 
+az ad sp create-for-rbac -n "${PREFIX}arosp" --skip-assignment
+
+
 ## Step 2: Request permissions for the Service Principal from Tenant Administrator
 
 In order to properly mint credentials for components in the cluster, your service principal needs to request for the following Application [permissions][ad-permissions] before you can deploy OpenShift on Azure: `Azure Active Directory Graph -> Application.ReadWrite.OwnedBy`
