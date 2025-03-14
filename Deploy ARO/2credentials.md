@@ -1,5 +1,3 @@
-I'll add the Step 5 section to the formatted Markdown:
-
 # Service Principal for Azure OpenShift
 
 Before proceeding with the OpenShift installation, you need to create a service principal with administrative rights for your subscription by following the steps outlined in [Azure: Creating a Service Principal][sp-create].
@@ -9,6 +7,29 @@ Before proceeding with the OpenShift installation, you need to create a service 
 You can create a Service Principal using either:
 - The Azure [portal][sp-create-portal]
 - The Azure [CLI][sp-create-cli]
+
+### Example using Azure CLI
+
+To create a service principal using Azure CLI, run the following command:
+
+```sh
+az ad sp create-for-rbac -n "${PREFIX}arosp" --skip-assignment
+```
+
+This creates a service principal named with your desired prefix followed by "arosp" and skips the role assignment step (we'll handle permissions separately in Step 3).
+
+The command will output credentials similar to:
+```json
+{
+  "appId": "00000000-0000-0000-0000-000000000000",
+  "displayName": "myarosp",
+  "name": "http://myarosp",
+  "password": "0000-0000-0000-0000-000000000000",
+  "tenant": "00000000-0000-0000-0000-000000000000"
+}
+```
+
+Save this information securely as you'll need it later.
 
 ## Step 2: Request Permissions for the Service Principal
 
