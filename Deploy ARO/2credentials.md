@@ -1,32 +1,25 @@
-# Service Principal
+I'll add the Step 5 section to the formatted Markdown:
 
-Before proceeding with the OpenShift install, you should create a service principal with administrative rights for your subscription following the steps
-outlined here:
+# Service Principal for Azure OpenShift
 
-[Azure: Creating an Service Principal][sp-create]
+Before proceeding with the OpenShift installation, you need to create a service principal with administrative rights for your subscription by following the steps outlined in [Azure: Creating a Service Principal][sp-create].
 
 ## Step 1: Create a Service Principal
 
-You can create a Service Principal using the Azure [portal][sp-create-portal] or the Azure [cli][sp-create-cli]
+You can create a Service Principal using either:
+- The Azure [portal][sp-create-portal]
+- The Azure [CLI][sp-create-cli]
 
-$PREFIX=NameCluster
+## Step 2: Request Permissions for the Service Principal
 
-az ad sp create-for-rbac -n "${PREFIX}arosp" --skip-assignment
+In order to properly mint credentials for components in the cluster, your service principal needs to request the following Application [permissions][ad-permissions]:
+- `Azure Active Directory Graph -> Application.ReadWrite.OwnedBy`
 
-or 
+You can request these permissions using the Azure portal or Azure CLI.
 
-az ad sp create-for-rbac -n "clustenamerarosp" --skip-assignment
+### Requesting Permissions Using the Azure CLI
 
-
-## Step 2: Request permissions for the Service Principal from Tenant Administrator
-
-In order to properly mint credentials for components in the cluster, your service principal needs to request for the following Application [permissions][ad-permissions] before you can deploy OpenShift on Azure: `Azure Active Directory Graph -> Application.ReadWrite.OwnedBy`
-
-You can request permissions using the Azure portal or the Azure cli.
-
-### Requesting permissions using the Azure cli
-
-Find the AppId for your service principal by using,
+1. Find the AppId for your service principal:
 
 ```console
 $ az ad sp list --show-mine -o table
@@ -35,27 +28,57 @@ AccountEnabled    AppDisplayName     AppId                                 AppOw
 ...
 ```
 
-Use can request `Application.ReadWrite.OwnedBy` permission by using,
+2. Request the `Application.ReadWrite.OwnedBy` permission:
 
 ```sh
 az ad app permission add --id <AppId> --api 00000002-0000-0000-c000-000000000000 --api-permissions 824c81eb-e3f8-4ee6-8f6d-de7f50d565b7=Role
 ```
 
-NOTE: `Application.ReadWrite.OwnedBy` permission is granted to the the application only after it is provided an [`Admin Consent`][ad-admin-consent] by the Tenant Administrator.
+> **NOTE:** `Application.ReadWrite.OwnedBy` permission is granted to the application only after it receives [`Admin Consent`][ad-admin-consent] from the Tenant Administrator.
 
 ## Step 3: Attach Administrative Role
 
-Azure installer creates new identities for the cluster and therefore requires access to create new roles, and role assignments. Therefore, you will require the service principal to have at least `Contributor` and `User Access Administrator` [roles][built-in-roles] assigned in your subscription.
+The Azure installer creates new identities for the cluster and therefore requires access to create new roles and role assignments. Your service principal will need at least the following roles assigned in your subscription:
+- `Contributor`
+- `User Access Administrator` [roles][built-in-roles]
 
-You can create role assignments for your service principal using the Azure [portal][sp-assign-portal] or the Azure [cli][sp-assign-cli]
+You can create role assignments using:
+- The Azure [portal][sp-assign-portal] 
+- The Azure [CLI][sp-assign-cli]
 
 ## Step 4: Acquire Client Secret
 
-You need to save the client secret values to configure your local machine to run the installer. This step is your opportunity to collect those values, and additional credentials can be added to the service principal in the Azure portal if you didn't capture them.
+You need to save the client secret values to configure your local machine to run the installer. This is your opportunity to collect those values (additional credentials can be added to the service principal in the Azure portal if needed).
 
-You can get client secret for your service principal using the Azure [portal][sp-creds-portal] or the Azure [cli][sp-creds-cli]
+You can get the client secret for your service principal using:
+- The Azure [portal][sp-creds-portal]
+- The Azure [CLI][sp-creds-cli]
 
+## Step 5: Remove Service Principal (Optional)
 
+If you need to remove a Service Principal after it's no longer needed, follow these steps:
+
+1. First, list your Service Principals to identify which one to remove:
+
+```console
+$ az ad sp list --show-mine -o table
+DisplayName       Id                                    AppId                                 CreatedDateTime
+----------------  ------------------------------------  ------------------------------------  --------------------
+arctestaro_arosp  5cba4b28-dff9-4f03-a92f-XXXXXXXXXXXX  3794c0a6-b32f-4f99-afd8-AAAAAAAAAAAA  2100-01-28T15:53:24Z
+aro-oc9e2sqy      084bce91-7e73-403a-b376-YYYYYYYYYYYY  c32f7e34-a2b6-4f50-b08f-BBBBBBBBBBBB  2100-11-04T06:00:23Z
+aro-rwwibcws      28f45b97-27a6-42bf-81eb-WWWWWWWWWWWW  1a82940d-44da-4b0a-88f6-CCCCCCCCCCCC  2100-11-04T06:13:51Z
+arosp             1f0fd38c-42bf-42de-89d5-ZZZZZZZZZZZZ  6f6df3d0-cf7b-46dc-b079-DDDDDDDDDDDD  2100-01-28T02:06:29Z
+```
+
+2. Delete the Service Principal using its ID:
+
+```sh
+az ad sp delete --id 1f0fd38c-42bf-42de-89d5-ZZZZZZZZZZZZ
+```
+
+Make sure to replace the ID with the correct one for the Service Principal you want to delete.
+
+<!-- References -->
 [ad-admin-consent]: https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-permissions-and-consent#types-of-consent
 [ad-permissions]: https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-permissions-and-consent
 [sp-create]: https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-create-service-principals
