@@ -67,13 +67,63 @@ You can create role assignments using:
 - The Azure [portal][sp-assign-portal] 
 - The Azure [CLI][sp-assign-cli]
 
+### Example using Azure CLI
+
+To assign the required roles to your service principal using the Azure CLI, run the following commands:
+
+```sh
+# Store the app ID in a variable
+SP_APP_ID="<your-sp-app-id>"
+
+# Store your subscription ID
+SUBSCRIPTION_ID="<your-subscription-id>"
+
+# Assign Contributor role
+az role assignment create --assignee $SP_APP_ID --role "Contributor" --scope /subscriptions/$SUBSCRIPTION_ID
+
+# Assign User Access Administrator role
+az role assignment create --assignee $SP_APP_ID --role "User Access Administrator" --scope /subscriptions/$SUBSCRIPTION_ID
+```
+
+Replace `<your-sp-app-id>` with the AppId from the service principal creation output and `<your-subscription-id>` with your Azure subscription ID.
+
 ## Step 4: Acquire Client Secret
 
 You need to save the client secret values to configure your local machine to run the installer. This is your opportunity to collect those values (additional credentials can be added to the service principal in the Azure portal if needed).
 
+> **IMPORTANT:** When the service principal is first created (in Step 1), a client secret is generated and displayed in the output. This is the only time this original secret is shown, so make sure to save it securely. If you reset the credentials as shown below, the previous secret will be invalidated and a new one will be generated. Any applications or services using the old secret will stop working.
+
 You can get the client secret for your service principal using:
 - The Azure [portal][sp-creds-portal]
 - The Azure [CLI][sp-creds-cli]
+
+### Example using Azure CLI
+
+To reset and retrieve a new client secret for your service principal using the Azure CLI:
+
+```sh
+# Store the app ID in a variable
+SP_APP_ID="<your-sp-app-id>"
+
+# Reset the credentials to get a new client secret
+az ad sp credential reset --id $SP_APP_ID --append
+
+# This will output JSON similar to:
+# {
+#   "appId": "00000000-0000-0000-0000-000000000000",
+#   "password": "new-generated-password",
+#   "tenant": "00000000-0000-0000-0000-000000000000"
+# }
+```
+
+You can also extract just the password (client secret) with:
+
+```sh
+CLIENT_SECRET=$(az ad sp credential reset --id $SP_APP_ID --query password -o tsv)
+echo $CLIENT_SECRET
+```
+
+When you reset credentials, the previous client secret becomes invalid immediately. Any application or service using the previous secret will no longer be able to authenticate. Make sure to update all applications using this service principal with the new secret.
 
 ## Step 5: Remove Service Principal (Optional)
 
