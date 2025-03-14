@@ -13,7 +13,7 @@ You can create a Service Principal using either:
 To create a service principal using Azure CLI, run the following command:
 
 ```sh
-az ad sp create-for-rbac -n "${PREFIX}arosp" --skip-assignment
+az ad sp create-for-rbac -n "${PREFIX}arosp"
 ```
 
 This creates a service principal named with your desired prefix followed by "arosp" and skips the role assignment step (we'll handle permissions separately in Step 3).
@@ -30,6 +30,29 @@ The command will output credentials similar to:
 ```
 
 Save this information securely as you'll need it later.
+
+### Handling Credential Lifetime Error
+
+If you encounter an error like:
+```
+Credential lifetime exceeds the max value allowed as per assigned policy '9d2624cb-b59a-459a-bb1a-31e4ec43bf74'.
+```
+
+This means your Azure AD tenant has a policy restricting credential lifetimes. You need to specify a shorter credential expiration time with the `--years` flag. For example:
+
+```sh
+# Create a service principal with credentials valid for 1 year
+az ad sp create-for-rbac -n "${PREFIX}arosp" --years 1
+```
+
+Or for an even shorter duration:
+
+```sh
+# Create a service principal with credentials valid for 6 months
+az ad sp create-for-rbac -n "${PREFIX}arosp" --months 6
+```
+
+If you still encounter issues, check with your Azure AD administrator about the specific credential lifetime policies in your organization.
 
 ## Step 2: Request Permissions for the Service Principal
 
