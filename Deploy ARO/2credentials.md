@@ -9,7 +9,13 @@ outlined here:
 
 You can create a Service Principal using the Azure [portal][sp-create-portal] or the Azure [cli][sp-create-cli]
 
+$PREFIX=NameCluster
+
 az ad sp create-for-rbac -n "${PREFIX}arosp" --skip-assignment
+
+or 
+
+az ad sp create-for-rbac -n "clustenamerarosp" --skip-assignment
 
 
 ## Step 2: Request permissions for the Service Principal from Tenant Administrator
@@ -48,6 +54,20 @@ You can create role assignments for your service principal using the Azure [port
 You need to save the client secret values to configure your local machine to run the installer. This step is your opportunity to collect those values, and additional credentials can be added to the service principal in the Azure portal if you didn't capture them.
 
 You can get client secret for your service principal using the Azure [portal][sp-creds-portal] or the Azure [cli][sp-creds-cli]
+
+
+In case you need to remove Service Principal
+
+az ad sp list --show-mine -o table
+
+DisplayName       Id                                    AppId                                 CreatedDateTime
+----------------  ------------------------------------  ------------------------------------  --------------------
+arctestaro_arosp  5cba4b28-dff9-4f03-a92f-XXXXXXXXXXXX  3794c0a6-b32f-4f99-afd8-AAAAAAAAAAAA  2100-01-28T15:53:24Z
+aro-oc9e2sqy      084bce91-7e73-403a-b376-YYYYYYYYYYYY  c32f7e34-a2b6-4f50-b08f-BBBBBBBBBBBB  2100-11-04T06:00:23Z
+aro-rwwibcws      28f45b97-27a6-42bf-81eb-WWWWWWWWWWWW  1a82940d-44da-4b0a-88f6-CCCCCCCCCCCC  2100-11-04T06:13:51Z
+arosp             1f0fd38c-42bf-42de-89d5-ZZZZZZZZZZZZ  6f6df3d0-cf7b-46dc-b079-DDDDDDDDDDDD  2100-01-28T02:06:29Z
+
+az ad sp delete --id 1f0fd38c-42bf-42de-89d5-ZZZZZZZZZZZZ
 
 [ad-admin-consent]: https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-permissions-and-consent#types-of-consent
 [ad-permissions]: https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-permissions-and-consent
