@@ -32,66 +32,24 @@ cat << EOF > infra-machineset.yaml
 apiVersion: machine.openshift.io/v1beta1
 kind: MachineSet
 metadata:
-  labels:
-    machine.openshift.io/cluster-api-cluster: ${INFRASTRUCTURE_ID}
-    machine.openshift.io/cluster-api-machine-role: infra
-    machine.openshift.io/cluster-api-machine-type: infra
-  name: ${INFRA_MACHINESET_NAME}
-  namespace: openshift-machine-api
+  name: aro-cluster-abcd1-spot-eastus
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      machine.openshift.io/cluster-api-cluster: ${INFRASTRUCTURE_ID}
-      machine.openshift.io/cluster-api-machineset: ${INFRA_MACHINESET_NAME}
+      machine.openshift.io/cluster-api-cluster: aro-cluster-abcd1
+      machine.openshift.io/cluster-api-machineset: aro-cluster-abcd1-spot-eastus
   template:
     metadata:
-      creationTimestamp: null
-      labels:
-        machine.openshift.io/cluster-api-cluster: ${INFRASTRUCTURE_ID}
-        machine.openshift.io/cluster-api-machine-role: infra
-        machine.openshift.io/cluster-api-machine-type: infra
-        machine.openshift.io/cluster-api-machineset: ${INFRA_MACHINESET_NAME}
+        machine.openshift.io/cluster-api-machineset: aro-cluster-abcd1-spot-eastus
     spec:
-      metadata:
-        creationTimestamp: null
-        labels:
-          node-role.kubernetes.io/infra: ''
       providerSpec:
         value:
-          apiVersion: azureproviderconfig.openshift.io/v1beta1
-          credentialsSecret:
-            name: azure-cloud-credentials
-            namespace: openshift-machine-api
-          image:
-            offer: aro4
-            publisher: azureopenshift
-            sku: ${SKU}
-            version: ${VERSION}
-          kind: AzureMachineProviderSpec
-          location: ${REGION}
-          metadata:
-            creationTimestamp: null
-          natRule: null
-          networkResourceGroup: ${NETWORK_RESOURCE_GROUP}
-          osDisk:
-            diskSizeGB: 128
-            managedDisk:
-              storageAccountType: Premium_LRS
-            osType: Linux
-          publicIP: false
-          resourceGroup: ${CLUSTER_RESOURCE_GROUP}
-          tags:
-            node_role: infra
-          subnet: ${SUBNET}
-          userDataSecret:
-            name: worker-user-data
-          vmSize: Standard_E8s_v5
-          vnet: ${VNET}
-          zone: ${ZONE}
+          spotVMOptions: {}
       taints:
-      - key: node-role.kubernetes.io/infra
-        effect: NoSchedule
+        - effect: NoExecute
+          key: spot
+          value: 'true'
 EOF
 
 echo "Archivo de machineset de infraestructura generado en: $(pwd)/infra-machineset.yaml"
