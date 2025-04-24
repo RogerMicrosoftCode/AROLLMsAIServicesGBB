@@ -346,6 +346,74 @@ quarkus ext add openshift
     quarkus build --no-tests
     ```
 
+# Installing Maven for Quarkus Development
+
+## Problem
+
+When trying to build a Quarkus application, you encounter the following error:
+
+```
+% quarkus build --no-tests
+[ERROR] ❗  Unable to find the maven executable, is it in your path?
+[ERROR] ❗  Unable to build project: Unable to find mvn command
+```
+
+## Solution
+
+Quarkus relies on Maven to build Java applications. You need to install Maven on your system.
+
+### Option 1: Install Maven using Homebrew
+
+```bash
+# Install Maven using Homebrew
+brew install maven
+
+# Verify installation
+mvn -version
+```
+
+### Option 2: Use Maven Wrapper (within existing projects)
+
+If you already have a Quarkus project with Maven wrapper:
+
+```bash
+# Build with Maven wrapper instead of quarkus CLI
+./mvnw clean package -DskipTests
+```
+
+### Option 3: Generate Maven Wrapper for your project
+
+If your project doesn't have the Maven wrapper yet:
+
+```bash
+# First install Maven temporarily
+brew install maven
+
+# Generate wrapper in your project
+mvn -N io.takari:maven:wrapper
+
+# Now you can use the wrapper for building
+./mvnw clean package -DskipTests
+```
+
+## Verify and Build Again
+
+After Maven is installed, verify it works and build your Quarkus project:
+
+```bash
+# Verify Maven is available
+mvn -version
+
+# Try the Quarkus build again
+quarkus build --no-tests
+```
+
+## Additional Notes
+
+- Maven requires Java to be installed (JDK 11+ recommended for Quarkus)
+- The Quarkus CLI delegates to Maven for most build operations
+- Maven wrapper (`./mvnw`) is the recommended approach for project portabilit
+
 1. We want to see custom metrics from the Quarkus app (they're exposed by the Quarkus micrometer plugin) so we can configure a Prometheus `ServiceMonitor` resource to watch for the applications label.
 
     ```bash
