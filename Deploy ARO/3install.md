@@ -148,3 +148,35 @@ This deployment method gives you more control over the detailed parameters of yo
 ---
 
 While the cluster is being created, let's learn more about what you will be doing in this workshop.
+
+Details Command AZ ARO CREATE FLAGS
+az aro create --master-subnet
+              --name
+              --resource-group
+              --worker-subnet
+              [--apiserver-visibility {Private, Public}]
+              [--client-id]
+              [--client-secret]
+              [--cluster-resource-group]
+              [--disk-encryption-set]
+              [--domain]
+              [--enable-preconfigured-nsg {false, true}]
+              [--fips {false, true}]
+              [--ingress-visibility {Private, Public}]
+              [--lb-ip-count]
+              [--location]
+              [--master-enc-host {false, true}]
+              [--master-vm-size]
+              [--no-wait]
+              [--outbound-type]
+              [--pod-cidr]
+              [--pull-secret]
+              [--service-cidr]
+              [--tags]
+              [--version]
+              [--vnet]
+              [--vnet-resource-group]
+              [--worker-count]
+              [--worker-enc-host {false, true}]
+              [--worker-vm-disk-size-gb]
+              [--worker-vm-size]
