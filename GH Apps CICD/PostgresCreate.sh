@@ -6,8 +6,6 @@ export AZ_LOCATION="westus3"
 export AZ_USER="adminUserGBB"
 export UNIQUE="$(date +%s | shasum | head -c 10)gbbpwd"
 
-echo $UNIQUE
-
 # Create PostgreSQL server
 az postgres server create \
   --resource-group "${AZ_RG}" \

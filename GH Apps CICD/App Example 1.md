@@ -31,10 +31,10 @@ This repository contains a script to deploy an Azure Database for PostgreSQL ser
 #!/bin/bash
 
 # Required environment variables
-AZ_RG="resource-group-name"           # Resource group name
-AZ_LOCATION="eastus"                  # Server location (Azure region)
-AZ_USER="adminUser"                   # Base for admin username
-UNIQUE=$(date +%s | sha256sum | base64 | head -c 10)  # Generates a unique suffix
+export AZ_RG="arogbbwestus3"          
+export AZ_LOCATION="westus3"
+export AZ_USER="adminUserGBB"
+export UNIQUE="$(date +%s | shasum | head -c 10)gbbpwd"
 
 # Create PostgreSQL server
 az postgres server create \
