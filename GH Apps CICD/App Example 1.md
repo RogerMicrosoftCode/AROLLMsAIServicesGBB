@@ -15,6 +15,19 @@ It's time for us to put our cluster to work and deploy a workload. We're going t
 
     !!! warning "For the sake of the workshop we are creating a public database that any host in Azure can connect to. In a real world scenario you would create a private database and connect to it over a private link service"
 
+# Azure PostgreSQL Server Deployment Script
+
+This repository contains a script to deploy an Azure Database for PostgreSQL server using Azure CLI.
+
+## Requirements
+
+- Azure CLI installed and authenticated
+- Subscription with permissions to create PostgreSQL resources
+- Bash shell environment
+
+## Script
+
+```bash
 #!/bin/bash
 
 # Required environment variables
@@ -40,14 +53,46 @@ echo "Name: microsweeper-${UNIQUE}"
 echo "Admin username: myAdmin"
 echo "Password: ${AZ_USER}-${UNIQUE}"
 echo "Storage size: 51200 MB"
+```
 
-    ```bash
-    az postgres server create --resource-group "${AZ_RG}" \
-      --location "${AZ_LOCATION}" --sku-name GP_Gen5_2 \
-      --name "microsweeper-${UNIQUE}" --storage-size 51200 \
-      --admin-user myAdmin --admin-pass "${AZ_USER}-${UNIQUE}" \
-      --public 0.0.0.0
-    ```
+## Command Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `--resource-group` | Resource group where the server will be created |
+| `--location` | Azure region where the server will be deployed |
+| `--sku-name` | Server type and capacity (GP_Gen5_2 = General Purpose, Gen5, 2 cores) |
+| `--name` | PostgreSQL server name in Azure |
+| `--storage-size` | Storage size in MB (51200 = 50 GB) |
+| `--admin-user` | Administrator username for the server |
+| `--admin-pass` | Administrator password |
+| `--public` | Allows connections from public IP addresses (0.0.0.0 = any IP) |
+
+## Security Considerations
+
+- The script allows connections from any IP (0.0.0.0) by default. For production environments, it's recommended to restrict this access to specific IPs.
+- The password is generated with a unique suffix, but in production environments consider using a more secure secret management system like Azure KeyVault.
+- Consider enabling SSL for secure connections after creating the server.
+
+## Additional Recommended Configuration
+
+Once the server is created, consider configuring:
+
+```bash
+# Create firewall rule to allow access from Azure services
+az postgres server firewall-rule create \
+  --resource-group "${AZ_RG}" \
+  --server-name "microsweeper-${UNIQUE}" \
+  --name AllowAllAzureIPs \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 0.0.0.0
+
+# Create a database
+az postgres db create \
+  --resource-group "${AZ_RG}" \
+  --server-name "microsweeper-${UNIQUE}" \
+  --name myApplication
+```
 
 1. Check connectivity from our Cloud Shell to our database. To do so, run the following command:
 
