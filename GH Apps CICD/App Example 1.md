@@ -214,6 +214,82 @@ Now that we've got a PostgreSQL instance up and running, let's build and deploy 
     quarkus ext add openshift
     ```
 
+# Installing Quarkus CLI on macOS
+
+## Problem
+
+When trying to run a Quarkus command, you receive the following error:
+```
+zsh: command not found: quarkus
+```
+
+## Solution
+
+The error indicates that the Quarkus CLI is not installed on your system or is not in your PATH. Follow one of these methods to install it:
+
+### Method 1: Using Homebrew (Recommended)
+
+```bash
+brew install quarkusio/tap/quarkus
+```
+
+### Method 2: Using SDKMan!
+
+```bash
+# Install SDKMan! if you don't have it already
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# Install Quarkus
+sdk install quarkus
+```
+
+### Method 3: Using the Java Installer
+
+```bash
+# Install JBang and add Quarkus repository
+curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/
+
+# Install Quarkus CLI
+curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
+```
+
+## Verification
+
+After installation, verify that Quarkus CLI is correctly installed:
+
+```bash
+quarkus --version
+```
+
+## Using the Quarkus CLI
+
+Once installed, you can run your original command:
+
+```bash
+quarkus ext add openshift
+```
+
+⚠️ **Important**: This command must be run inside a Quarkus project directory.
+
+If you don't have a Quarkus project yet, create one first:
+
+```bash
+# Create a new Quarkus project
+quarkus create app my-openshift-project
+
+# Navigate to the project directory
+cd my-openshift-project
+
+# Add the OpenShift extension
+quarkus ext add openshift
+```
+
+## Additional Resources
+
+- [Quarkus CLI Documentation](https://quarkus.io/guides/cli-tooling)
+- [Quarkus OpenShift Extension Guide](https://quarkus.io/guides/deploying-to-openshift)
+
 1. We also want Quarkus to be able to use OpenShift ConfigMaps and Secrets
 
     ```bash
