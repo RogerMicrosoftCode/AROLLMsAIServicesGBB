@@ -113,6 +113,85 @@ az postgres db create \
     (1 row)
     ```
 
+# Installing PostgreSQL Client on macOS
+
+This guide helps resolve the `zsh: command not found: psql` error when attempting to connect to Azure PostgreSQL databases.
+
+## Problem
+
+When running PostgreSQL commands in Terminal, you encounter:
+```
+zsh: command not found: psql
+```
+
+## Solution
+
+### Install PostgreSQL Client
+
+Install the PostgreSQL client tools using Homebrew:
+
+```bash
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install PostgreSQL client
+brew install postgresql
+```
+
+### Verify Installation
+
+Confirm the installation was successful:
+
+```bash
+which psql
+psql --version
+```
+
+### Connect to Azure PostgreSQL
+
+Use the following command format to connect to your Azure PostgreSQL database:
+
+```bash
+psql \
+  "host=microsweeper-${UNIQUE}.postgres.database.azure.com port=5432 \
+  dbname=postgres \
+  user=myAdmin@microsweeper-${UNIQUE}.postgres.database.azure.com \
+  password=${AZ_USER}-${UNIQUE} \
+  sslmode=require" \
+  -c "select now();"
+```
+
+### Environment Variables
+
+Ensure your environment variables are set correctly:
+
+```bash
+# Check current values
+echo $UNIQUE
+echo $AZ_USER
+
+# Set values if needed
+export UNIQUE="your-unique-value"
+export AZ_USER="your-user-value"
+```
+
+## Alternative: Use Azure Cloud Shell
+
+If you prefer not to install software locally:
+
+1. Navigate to [Azure Portal](https://portal.azure.com)
+2. Open Cloud Shell (>_ icon in top navigation)
+3. Select Bash environment
+4. Run your psql command (psql is pre-installed)
+
+## Troubleshooting
+
+If you still encounter issues after installation:
+
+1. Check if psql is in your PATH: `echo $PATH`
+2. Verify PostgreSQL installation: `brew info postgresql`
+3. Try restarting your terminal session
+
 ## Build and deploy the Microsweeper app
 
 Now that we've got a PostgreSQL instance up and running, let's build and deploy our application.
