@@ -4,7 +4,7 @@
 export AZ_RG="arogbbwestus3"          
 export AZ_LOCATION="westus3"
 export AZ_USER="adminUserGBB"
-export UNIQUE="$(date +%s | shasum | head -c 10)gbbpwd."
+export UNIQUE="$(date +%s | shasum | head -c 10)gbbpwd"
 
 echo $UNIQUE
 
