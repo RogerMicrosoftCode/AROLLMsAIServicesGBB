@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Required environment variables
-AZ_RG="arogbbwestus3"           # Resource group name
-AZ_LOCATION="westus3"                  # Server location (Azure region)
-AZ_USER="adminUserGBB"                   # Base for admin username
-UNIQUE=$(date +%s | sha256sum | base64 | head -c 10)  # Generates a unique suffix
-Echo "Creating PostgreSQL server with unique suffix: ${UNIQUE}"
+export AZ_RG="arogbbwestus3"          
+export AZ_LOCATION="westus3"
+export AZ_USER="adminUserGBB"
+export UNIQUE="$(date +%s | shasum | head -c 10)gbbpwd."
+
+echo $UNIQUE
 
 # Create PostgreSQL server
 az postgres server create \
