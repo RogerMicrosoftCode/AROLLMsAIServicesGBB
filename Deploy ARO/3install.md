@@ -149,34 +149,67 @@ This deployment method gives you more control over the detailed parameters of yo
 
 While the cluster is being created, let's learn more about what you will be doing in this workshop.
 
-Details Command AZ ARO CREATE FLAGS
-az aro create --master-subnet
-              --name
-              --resource-group
-              --worker-subnet
-              [--apiserver-visibility {Private, Public}]
-              [--client-id]
-              [--client-secret]
-              [--cluster-resource-group]
-              [--disk-encryption-set]
-              [--domain]
-              [--enable-preconfigured-nsg {false, true}]
-              [--fips {false, true}]
-              [--ingress-visibility {Private, Public}]
-              [--lb-ip-count]
-              [--location]
-              [--master-enc-host {false, true}]
-              [--master-vm-size]
-              [--no-wait]
-              [--outbound-type]
-              [--pod-cidr]
-              [--pull-secret]
-              [--service-cidr]
-              [--tags]
-              [--version]
-              [--vnet]
-              [--vnet-resource-group]
-              [--worker-count]
-              [--worker-enc-host {false, true}]
-              [--worker-vm-disk-size-gb]
-              [--worker-vm-size]
+# Azure ARO Create Command Reference
+
+Quick reference guide for the `az aro create` command to deploy Azure Red Hat OpenShift clusters.
+
+## Required Parameters
+
+- `--master-subnet` - Subnet for master nodes
+- `--name` - Name of the ARO cluster
+- `--resource-group` - Resource group name
+- `--worker-subnet` - Subnet for worker nodes
+
+## Networking Options
+
+- `--apiserver-visibility {Private, Public}` - API server endpoint visibility
+- `--ingress-visibility {Private, Public}` - Ingress endpoint visibility
+- `--vnet` - Virtual network name
+- `--vnet-resource-group` - Resource group containing the virtual network
+- `--pod-cidr` - CIDR for pods (default: 10.128.0.0/14)
+- `--service-cidr` - CIDR for services (default: 172.30.0.0/16)
+- `--outbound-type` - Outbound routing type
+
+## Authentication & Identity
+
+- `--client-id` - Service principal client ID
+- `--client-secret` - Service principal client secret
+- `--domain` - Custom domain for ARO cluster
+- `--pull-secret` - Path to OpenShift pull secret file
+
+## Compute Configuration
+
+- `--master-vm-size` - Size of master VMs
+- `--worker-vm-size` - Size of worker VMs
+- `--worker-count` - Number of worker nodes
+- `--worker-vm-disk-size-gb` - Worker node VM disk size in GB
+
+## Security Options
+
+- `--disk-encryption-set` - Customer-managed disk encryption set
+- `--fips {false, true}` - Enable FIPS validated crypto modules
+- `--master-enc-host {false, true}` - Enable host encryption for master VMs
+- `--worker-enc-host {false, true}` - Enable host encryption for worker VMs
+- `--enable-preconfigured-nsg {false, true}` - Use preconfigured network security group
+
+## Other Options
+
+- `--cluster-resource-group` - Resource group for cluster resources
+- `--location` - Azure region
+- `--no-wait` - Do not wait for operation to complete
+- `--tags` - Resource tags
+- `--version` - OpenShift version
+
+## Example Usage
+
+```bash
+az aro create \
+  --resource-group myResourceGroup \
+  --name myCluster \
+  --vnet myVnet \
+  --master-subnet master-subnet \
+  --worker-subnet worker-subnet \
+  --apiserver-visibility Private \
+  --ingress-visibility Private \
+  --pull-secret @pull-secret.txt
+```
