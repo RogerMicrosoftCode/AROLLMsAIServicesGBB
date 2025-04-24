@@ -15,6 +15,32 @@ It's time for us to put our cluster to work and deploy a workload. We're going t
 
     !!! warning "For the sake of the workshop we are creating a public database that any host in Azure can connect to. In a real world scenario you would create a private database and connect to it over a private link service"
 
+#!/bin/bash
+
+# Required environment variables
+AZ_RG="resource-group-name"           # Resource group name
+AZ_LOCATION="eastus"                  # Server location (Azure region)
+AZ_USER="adminUser"                   # Base for admin username
+UNIQUE=$(date +%s | sha256sum | base64 | head -c 10)  # Generates a unique suffix
+
+# Create PostgreSQL server
+az postgres server create \
+  --resource-group "${AZ_RG}" \
+  --location "${AZ_LOCATION}" \
+  --sku-name GP_Gen5_2 \
+  --name "microsweeper-${UNIQUE}" \
+  --storage-size 51200 \
+  --admin-user myAdmin \
+  --admin-pass "${AZ_USER}-${UNIQUE}" \
+  --public 0.0.0.0
+
+# Display created server information
+echo "PostgreSQL Server created:"
+echo "Name: microsweeper-${UNIQUE}"
+echo "Admin username: myAdmin"
+echo "Password: ${AZ_USER}-${UNIQUE}"
+echo "Storage size: 51200 MB"
+
     ```bash
     az postgres server create --resource-group "${AZ_RG}" \
       --location "${AZ_LOCATION}" --sku-name GP_Gen5_2 \
