@@ -1,109 +1,264 @@
-Up to this point, we have deployed the microsweeper app using the publicly available ingress controller that comes with our public Azure Red Hat OpenShift cluster. Now, we will continue our work to expose our application via Azure Front Door using the private ingress controller that we created earlier in the workshop. 
+# Azure Front Door Integration with Azure Red Hat OpenShift (ARO)
 
-A quick diagram of the ARO and Azure Front Door integration:
-![ARO + Azure Front Door Diagram](images/aro-frontdoor.png)]
+This guide demonstrates how to expose applications running on an Azure Red Hat OpenShift (ARO) cluster using Azure Front Door. We'll cover both public and private cluster scenarios with detailed step-by-step instructions.
 
-There are several advantages of this approach:
+## Overview
 
-* The ARO cluster and all the resources in your Azure account can be private.
-* Azure Front Door operates at the edge so we are controlling traffic before it gets into your Azure account.
-* Azure Front Door offers WAF and DDoS protection, certificate management, and SSL offloading, as well as many other security and performance related features.
+Azure Front Door is a global, scalable entry-point that uses the Microsoft global edge network to create fast, secure, and highly scalable web applications. When integrated with ARO, it provides several benefits:
 
-As you can see in the diagram, Azure Front Door sits on the edge of the Microsoft network and is connected to the cluster via an Azure Private Link service.
+* **Enhanced Security**: WAF and DDoS protection, certificate management, and SSL offloading
+* **Global Edge Access**: Traffic is controlled at Microsoft's edge before entering your Azure environment
+* **Private Infrastructure**: Your ARO cluster and Azure resources can remain private even when services are publicly accessible
 
-1. First, let's verify that the ingress controller we created earlier in the workshop is still there. To do so, run the following command: 
+## Architecture
 
-    ```bash
-    oc get IngressController private -n openshift-ingress-operator -o jsonpath='{.status.conditions}' | jq
-    ```
+![ARO + Azure Front Door Diagram](https://raw.githubusercontent.com/Azure/ARO-Landing-Zone-Accelerator/main/docs/images/frontdoor-integration.png)
 
-    You'll see a lot of output, but the main thing you're looking for is that the deployment is available:
+In this architecture:
+- Azure Front Door sits at the edge of Microsoft's network
+- Traffic is routed through Azure Front Door to your ARO cluster
+- For private clusters, Front Door connects via an Azure Private Link service
+- For public clusters, Front Door can connect directly to public endpoints
 
-    ```json
-    [...]
-      {
-        "lastTransitionTime": "2022-11-15T04:02:05Z",
-        "message": "The deployment has Available status condition set to True",
-        "reason": "DeploymentAvailable",
-        "status": "True",
-        "type": "DeploymentAvailable"
-      },
-    [...]
-    ```
+## Prerequisites
 
-1. Since we've already configured Azure Front Door with a custom domain, we just need to tell OpenShift to expect traffic to come from our custom domain via a route. To create our route, run the following command:
+- An Azure Red Hat OpenShift (ARO) cluster (public or private)
+- Access to Azure CLI and OpenShift CLI (oc)
+- A deployed application on the ARO cluster (like the microsweeper app from the workshop)
+- Administrative access to your Azure subscription
 
-    ```yaml
-    cat <<EOF | oc apply -f -
-    apiVersion: route.openshift.io/v1
-    kind: Route
-    metadata:
-      labels:
-        app.kubernetes.io/name: microsweeper-appservice
-        app.kubernetes.io/version: 1.0.0-SNAPSHOT
-        app.openshift.io/runtime: quarkus
-        type: private
-      name: microsweeper-appservice-fd
-      namespace: microsweeper-ex
-    spec:
-      host: app.${AZ_USER}.ws.mobb.cloud
-      to:
-        kind: Service
-        name: microsweeper-appservice
-        weight: 100
-        targetPort:
-          port: 8080
-      wildcardPolicy: None
-    EOF
-    ```
+## Implementation Steps
 
-1. Now, we're ready to validate our Azure Front Door endpoint. To do so, we need to get the custom domain to use. To do so, run the following command:
+### 1. Deploy Your Application
 
-    ```bash
-    oc -n microsweeper-ex get route microsweeper-appservice-fd -o jsonpath='{.spec.host}'
-    ```
-
-    Then visit the URL presented in a new tab in your web browser (using HTTPS). For example, your output will look something similar to:
-
-    ```bash
-    app.user1.ws.mobb.cloud
-    ```
-
-    In that case, you'd visit `https://app.user1.ws.mobb.cloud` in your browser. 
-
-Notice that the application is secured! This is done automatically for us by Front Door.
-    
-![Microsweeper App](images/microsweeper-secured.png)
-
-If you remember, one of the benefits of using Azure Front Door is that traffic is sent through and secured at the Microsoft edge, rather than your application. You can get some idea of how the traffic flows by looking at how the DNS for the custom domain is resolving:
+If you haven't already deployed an application, follow the steps in the workshop to deploy the microsweeper app:
 
 ```bash
-nslookup app.${AZ_USER}.ws.mobb.cloud
+# Create a namespace for your application
+oc new-project microsweeper-ex
+
+# Create secrets, deploy the app, etc.
+# (See the microsweeper deployment steps in the workshop)
 ```
 
-Your output will look something similar to:
+### 2. Configure a Private Ingress Controller (Required for Private Clusters)
+
+For private clusters, you need to configure a private ingress controller:
 
 ```bash
-Server:         168.63.129.16
-Address:        168.63.129.16#53
-
-Non-authoritative answer:
-app.user1.ws.mobb.cloud canonical name = user1-ilb-3686-fqchgscue9gqb7hq.z01.azurefd.net.
-user1-ilb-3686-fqchgscue9gqb7hq.z01.azurefd.net canonical name = star-azurefd-prod.trafficmanager.net.
-star-azurefd-prod.trafficmanager.net    canonical name = dual.part-0029.t-0009.t-msedge.net.
-dual.part-0029.t-0009.t-msedge.net      canonical name = part-0029.t-0009.t-msedge.net.
-Name:   part-0029.t-0009.t-msedge.net
-Address: 13.107.246.57
-Name:   part-0029.t-0009.t-msedge.net
-Address: 13.107.213.57
-Name:   part-0029.t-0009.t-msedge.net
-Address: 2620:1ec:46::57
-Name:   part-0029.t-0009.t-msedge.net
-Address: 2620:1ec:bdf::57
+# Create a private ingress controller configuration
+cat <<EOF | oc apply -f -
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: private
+  namespace: openshift-ingress-operator
+spec:
+  domain: private.${DOMAIN}
+  endpointPublishingStrategy:
+    loadBalancerStrategy:
+      scope: Internal
+    type: LoadBalancerService
+  routeSelector:
+    matchLabels:
+      type: private
+EOF
 ```
 
-Notice how the results show traffic coming from `*.t-msedge.net`.
+Verify the private ingress controller is available:
 
-Congratulations! You have now deployed a custom application, and exposed it to the internet using Azure Front Door.
+```bash
+oc get IngressController private -n openshift-ingress-operator -o jsonpath='{.status.conditions}' | jq
+```
 
-[def]: images/aro-frontdoor.png
+### 3. Set Up Azure Front Door
+
+#### Create an Azure Front Door Profile
+
+```bash
+# Set variables
+FRONTDOOR_NAME="${AZ_USER}-frontdoor"
+ENDPOINT_NAME="${AZ_USER}-endpoint"
+ORIGIN_GROUP="${AZ_USER}-origins"
+APP_DOMAIN="app.${AZ_USER}.example.com"  # Your custom domain
+
+# Create Front Door profile (Standard tier recommended for WAF capabilities)
+az afd profile create \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --sku Standard_AzureFrontDoor
+
+# Create endpoint
+az afd endpoint create \
+  --endpoint-name $ENDPOINT_NAME \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --enabled true
+```
+
+#### Configure Origin Group and Origin
+
+For public clusters:
+
+```bash
+# Get your app's route hostname
+PUBLIC_ROUTE_HOST=$(oc -n microsweeper-ex get route microsweeper-appservice -o jsonpath='{.spec.host}')
+
+# Create origin group
+az afd origin-group create \
+  --origin-group-name $ORIGIN_GROUP \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --probe-request-type GET \
+  --probe-protocol Http \
+  --probe-path "/" \
+  --probe-interval-in-seconds 60
+
+# Create origin pointing to the public route
+az afd origin create \
+  --origin-name "aro-app-origin" \
+  --origin-group-name $ORIGIN_GROUP \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --host-name $PUBLIC_ROUTE_HOST \
+  --origin-host-header $PUBLIC_ROUTE_HOST \
+  --priority 1 \
+  --weight 1000 \
+  --enabled true
+```
+
+For private clusters, you would connect to the Private Link Service created by the private ingress controller.
+
+#### Create Route and Custom Domain
+
+```bash
+# Create a route
+az afd route create \
+  --route-name app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --endpoint-name $ENDPOINT_NAME \
+  --origin-group $ORIGIN_GROUP \
+  --https-redirect enabled \
+  --forwarding-protocol HttpsOnly \
+  --link-to-default-domain true
+
+# Add custom domain (requires DNS validation or cert upload)
+az afd custom-domain create \
+  --custom-domain-name "app-domain" \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --host-name $APP_DOMAIN \
+  --minimum-tls-version "TLS12" \
+  --certificate-type ManagedCertificate
+```
+
+### 4. Configure Route in OpenShift
+
+Create a route that uses your custom domain:
+
+```bash
+cat <<EOF | oc apply -f -
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app.kubernetes.io/name: microsweeper-appservice
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
+    app.openshift.io/runtime: quarkus
+    type: private  # Only needed for private ingress controller
+  name: microsweeper-appservice-fd
+  namespace: microsweeper-ex
+spec:
+  host: $APP_DOMAIN
+  to:
+    kind: Service
+    name: microsweeper-appservice
+    weight: 100
+    targetPort:
+      port: 8080
+  wildcardPolicy: None
+EOF
+```
+
+### 5. Configure DNS
+
+Update your DNS to point your custom domain to the Azure Front Door endpoint:
+
+```bash
+# Get the Front Door endpoint hostname
+FRONTDOOR_ENDPOINT=$(az afd endpoint show \
+  --endpoint-name $ENDPOINT_NAME \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --query hostName -o tsv)
+
+# Create a CNAME record in your DNS provider
+# CNAME $APP_DOMAIN -> $FRONTDOOR_ENDPOINT
+```
+
+## Differences Between Public and Private ARO Clusters
+
+| Feature | Public ARO Cluster | Private ARO Cluster |
+|---------|-------------------|---------------------|
+| Ingress Controller | Uses default public ingress | Requires private ingress controller |
+| Connectivity | Direct from Front Door to public endpoints | Requires Private Link Service |
+| Default Security | Traffic flows over public internet to ARO | Traffic remains on Microsoft backbone |
+| Implementation | Simpler, fewer components | More complex, more secure |
+
+## Testing the Configuration
+
+Verify your setup with these steps:
+
+```bash
+# Get your custom domain from the route
+DOMAIN=$(oc -n microsweeper-ex get route microsweeper-appservice-fd -o jsonpath='{.spec.host}')
+
+# Verify DNS resolution
+nslookup $DOMAIN
+
+# Check the connection in your browser
+echo "Visit https://$DOMAIN in your browser"
+```
+
+When visiting your custom domain in a browser, you should see:
+1. A secure connection (HTTPS)
+2. Your application loading successfully
+3. Traffic routed through Azure Front Door (visible in DNS lookup as references to *.azurefd.net and *.t-msedge.net)
+
+## Benefits of This Approach
+
+- **Security**: Azure Front Door provides WAF capabilities to protect against common web exploits
+- **Performance**: Global content delivery and edge caching improve application performance
+- **Scalability**: Front Door automatically scales with traffic demands
+- **Certificate Management**: Managed TLS certificates with automatic renewal
+- **Traffic Management**: Load balancing and health probes ensure high availability
+
+## Troubleshooting
+
+If your application is not accessible:
+
+1. Verify the ingress controller status
+2. Check that your route has the correct hostname
+3. Ensure DNS is properly configured with CNAME records
+4. Verify Azure Front Door origin health
+5. Check for any WAF rules that might be blocking traffic
+
+## Advanced Configuration
+
+- Enable the Web Application Firewall (WAF) on Front Door
+- Configure session affinity for stateful applications
+- Set up geo-filtering to restrict access from specific countries
+- Implement custom routing rules based on URL paths
+
+## Conclusion
+
+Integrating Azure Front Door with your ARO cluster provides a secure, high-performance way to expose your applications globally while maintaining control over your infrastructure. Whether using a public or private cluster, Front Door offers significant benefits for production workloads.
+
+---
+
+## Additional Resources
+
+- [Azure Front Door Documentation](https://docs.microsoft.com/en-us/azure/frontdoor/)
+- [ARO Documentation](https://docs.microsoft.com/en-us/azure/openshift/)
+- [OpenShift Networking Documentation](https://docs.openshift.com/container-platform/latest/networking/understanding-networking.html)
