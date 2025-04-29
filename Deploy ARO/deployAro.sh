@@ -17,6 +17,9 @@ az network vnet subnet update --name master-subnet --resource-group $RESOURCEGRO
 az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --domain jaropro.net --pull-secret @pull-secret.txt --client-id $SP_CLIENT_ID --client-secret $SP_CLIENT_SECRET
 #az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --domain jaropro.net --pull-secret @pull-secret.txt
 
+az aro list-credentials --name $CLUSTER --resource-group $RESOURCEGROUP
+az aro show --name $CLUSTER --resource-group $RESOURCEGROUP --query "consoleProfile.url" -o tsv
+
 #SECCION TO DELETE ALL or FULL DEPLOYMENT
 #az aro delete --name $CLUSTER --resource-group $RESOURCEGROUP --yes --no-wait
 #az network vnet subnet delete --name master-subnet --resource-group $RESOURCEGROUP --vnet-name aro-vnet
