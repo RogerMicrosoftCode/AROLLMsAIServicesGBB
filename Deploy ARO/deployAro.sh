@@ -1,8 +1,8 @@
 #/bin/bash
 az login --use-device-code --tenant 16b3c013-d300-468d-ac64-7eda0820b6d3
 export LOCATION="westus3"
-export RESOURCEGROUP="arogbbwestus3"
-export CLUSTER="aroclusterwestus3"
+export RESOURCEGROUP="arobuildwestus3"
+export CLUSTER="arobuild25"
 export SP_CLIENT_ID="service-principal-client-id"
 export SP_CLIENT_SECRET="service-principal-client-secret"
 az group create --name $RESOURCEGROUP --location $LOCATION
