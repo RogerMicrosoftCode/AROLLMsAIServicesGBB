@@ -16,7 +16,7 @@ az network vnet subnet create --resource-group $RESOURCEGROUP --vnet-name aro-vn
 az network vnet subnet create --resource-group $RESOURCEGROUP --vnet-name aro-vnet --name worker-subnet --address-prefixes 192.168.192.128/25 --service-endpoints Microsoft.ContainerRegistry
 az network vnet subnet update --name master-subnet --resource-group $RESOURCEGROUP --vnet-name aro-vnet --private-link-service-network-policies Disabled
 
-#az ad sp create-for-rbac -n arobuildgbbc --role contriburor --scopes /subscriptions/55318ed6-5d8a-4bd2-889f-10e502960c28/resourceGroups/$RESOURCEGROUP--skip-assignment
+#az ad sp create-for-rbac -n arobuildgbbc --role contriburor --scopes /subscriptions/55318ed6-5d8a-4bd2-889f-10e502960c28/resourceGroups/$RESOURCEGROUP --skip-assignment
 #az ad sp list --show-mine -o table
 az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --pull-secret @pull-secret.txt --client-id $SP_CLIENT_ID --client-secret $SP_CLIENT_SECRET --worker-vm-size $WORKERVM --worker-count $WORKERCOUNT --master-vm-size $WORKERVM
 #az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --domain jaropro.net --pull-secret @pull-secret.txt
