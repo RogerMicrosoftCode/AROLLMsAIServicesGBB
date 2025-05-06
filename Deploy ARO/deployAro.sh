@@ -3,7 +3,7 @@ az login --use-device-code --tenant 16b3c013-d300-468d-ac64-7eda0820b6d3
 export LOCATION="westus3"
 export RESOURCEGROUP="arobuildw3"
 export CLUSTER="arobuild"
-export WORKERVM="Standard_D8s_v3"
+export WORKERVM="Standard_D4s_v3"
 export WORKERCOUNT=3
 export MASTERVM="Standard_D8s_v3"
 export VISIBILITY="Public"
