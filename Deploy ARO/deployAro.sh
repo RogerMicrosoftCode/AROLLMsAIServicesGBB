@@ -1,7 +1,7 @@
 #/bin/bash
 az login --use-device-code --tenant 16b3c013-d300-468d-ac64-7eda0820b6d3
-export LOCATION="eastus2"
-export RESOURCEGROUP="arobuilde2"
+export LOCATION="westus2"
+export RESOURCEGROUP="arobuildw2"
 export CLUSTER="arobuildgbb"
 export WORKERVM="Standard_D4s_v3"
 export WORKERCOUNT=3
@@ -19,6 +19,8 @@ az network vnet subnet update --name master-subnet --resource-group $RESOURCEGRO
 #az ad sp create-for-rbac -n arobuildgbbc --role contriburor --scopes /subscriptions/55318ed6-5d8a-4bd2-889f-10e502960c28/resourceGroups/$RESOURCEGROUP --skip-assignment
 #az ad sp list --show-mine -o table
 az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --pull-secret @pull-secret.txt --client-id $SP_CLIENT_ID --client-secret $SP_CLIENT_SECRET --worker-vm-size $WORKERVM --worker-count $WORKERCOUNT --master-vm-size $MASTERVM
+az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --pull-secret @pull-secret.txt --client-id $SP_CLIENT_ID --client-secret $SP_CLIENT_SECRET 
+
 #az aro create --resource-group $RESOURCEGROUP --name $CLUSTER --vnet aro-vnet --master-subnet master-subnet --worker-subnet worker-subnet --apiserver-visibility $VISIBILITY --ingress-visibility $VISIBILITY --domain jaropro.net --pull-secret @pull-secret.txt
 
 az aro list-credentials --name $CLUSTER --resource-group $RESOURCEGROUP
