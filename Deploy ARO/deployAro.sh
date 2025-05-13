@@ -1,7 +1,7 @@
 #/bin/bash
 az login --use-device-code --tenant 16b3c013-d300-468d-ac64-7eda0820b6d3
-export LOCATION="westus2"
-export RESOURCEGROUP="arobuildw2"
+export LOCATION="brazilsouth"
+export RESOURCEGROUP="arobuildbr"
 export CLUSTER="arobuildgbb"
 export WORKERVM="Standard_D4s_v3"
 export WORKERCOUNT=3
@@ -36,6 +36,9 @@ az aro show --name $CLUSTER --resource-group $RESOURCEGROUP --query "consoleProf
 
 #az group delete --name $RESOURCEGROUP --yes --no-wait
 
-#SECCION PARA VERIFICAR EL TIPO DE VM
+#SECCION PARA VERIFICAR EL TIPO DE VM 
+# az account list-locations >regiones.txt
+# grep -i bra regiones.txt
+
 #az vm list-skus --location $LOCATION --size Standard_D --all --output table | grep '1,2,3    None' >vmlist.txt
 #cat vmlist.txt |grep D8
