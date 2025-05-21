@@ -85,6 +85,8 @@ After deploying your application:
 
 ```bash
 # Get the public route hostname for your application
+oc login --token=sha256~00000000000000000000000000000000000000000000 --server=https://$OCP_API:6443
+oc project microsweeper-ex
 export PUBLIC_ROUTE_HOST=$(oc -n ${NAMESPACE} get route ${APP_SERVICE} -o jsonpath='{.spec.host}')
 echo "Public Route: ${PUBLIC_ROUTE_HOST}"
 
