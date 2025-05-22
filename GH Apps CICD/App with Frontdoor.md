@@ -2,10 +2,6 @@
 
 This guide demonstrates how to expose applications running on an Azure Red Hat OpenShift (ARO) cluster using Azure Front Door. We'll cover both public and private cluster scenarios with detailed step-by-step instructions.
 
-## Environment Variables Setup
-
-Before starting with Azure Front Door deployment, we need to set up the necessary environment variables. These variables will be used throughout the implementation process.
-
 ## Overview
 
 Azure Front Door is a global, scalable entry-point that uses the Microsoft global edge network to create fast, secure, and highly scalable web applications. When integrated with ARO, it provides several benefits:
@@ -57,6 +53,278 @@ export APP_SERVICE="microsweeper-appservice"   # Application service name
 export APP_DOMAIN="app.${AZ_USER}.example.com" # App subdomain
 ```
 
+### OpenShift Login and Project Configuration
+
+Before working with your ARO cluster, you need to authenticate and set the correct project context:
+
+#### Step 1: Get OpenShift Credentials and URLs
+
+```bash
+# Get OpenShift console URL
+export OCP_CONSOLE="$(az aro show --name ${AZ_ARO} \
+  --resource-group ${AZ_RG} \
+  -o tsv --query consoleProfile)"
+
+# Get OpenShift API server URL
+export OCP_API="$(az aro show --name ${AZ_ARO} \
+  --resource-group ${AZ_RG} \
+  --query apiserverProfile.url -o tsv)"
+
+# Get cluster credentials (admin)
+ADMIN_CREDENTIALS=$(az aro list-credentials \
+  --name "${AZ_ARO}" \
+  --resource-group "${AZ_RG}")
+
+export OCP_USER=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminUsername')
+export OCP_PASS=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminPassword')
+
+# Display the information
+echo "=================================================="
+echo "OPENSHIFT CLUSTER INFORMATION"
+echo "=================================================="
+echo "Console URL: ${OCP_CONSOLE}"
+echo "API Server: ${OCP_API}"
+echo "Username: ${OCP_USER}"
+echo "Password: ${OCP_PASS}"
+echo "=================================================="
+```
+
+#### Step 2: Login to OpenShift CLI
+
+```bash
+# Login to OpenShift using the CLI
+echo "🔐 Logging into OpenShift cluster..."
+oc login "${OCP_API}" -u "${OCP_USER}" -p "${OCP_PASS}"
+
+# Verify login was successful
+if [ $? -eq 0 ]; then
+    echo "✅ Successfully logged into OpenShift cluster"
+    echo "Current user: $(oc whoami)"
+    echo "Current server: $(oc whoami --show-server)"
+else
+    echo "❌ Failed to login to OpenShift cluster"
+    echo "Please verify the credentials and try again"
+    exit 1
+fi
+```
+
+#### Step 3: Set Up Project/Namespace
+
+```bash
+# Check if the project exists
+if oc get project $NAMESPACE >/dev/null 2>&1; then
+    echo "📁 Project '$NAMESPACE' already exists"
+    oc project $NAMESPACE
+else
+    echo "📁 Creating new project '$NAMESPACE'..."
+    oc new-project $NAMESPACE --description="Microsweeper application for Front Door integration"
+fi
+
+# Verify current project context
+CURRENT_PROJECT=$(oc project -q)
+echo "Current project: $CURRENT_PROJECT"
+
+if [ "$CURRENT_PROJECT" != "$NAMESPACE" ]; then
+    echo "⚠️  Warning: Current project ($CURRENT_PROJECT) does not match expected project ($NAMESPACE)"
+    echo "Switching to correct project..."
+    oc project $NAMESPACE
+fi
+
+echo "✅ Project setup completed successfully"
+```
+
+#### Alternative: Login with Token (More Secure for Automation)
+
+For automation scripts or CI/CD pipelines, using tokens is more secure:
+
+```bash
+# Alternative method: Login with token
+login_with_token() {
+    echo "🔐 Logging into OpenShift with token..."
+    
+    # Get token from the console or use a service account token
+    if [ -z "$OCP_TOKEN" ]; then
+        echo "📋 To get a token, visit: ${OCP_CONSOLE}"
+        echo "   1. Login to the web console"
+        echo "   2. Click on your username (top right)"
+        echo "   3. Select 'Copy Login Command'"
+        echo "   4. Copy the token from the command"
+        echo ""
+        read -p "Enter your OpenShift token: " OCP_TOKEN
+    fi
+    
+    # Login with token
+    oc login --token="$OCP_TOKEN" --server="$OCP_API"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Successfully logged in with token"
+    else
+        echo "❌ Failed to login with token"
+        return 1
+    fi
+}
+
+# Uncomment the line below to use token-based authentication
+# login_with_token
+```
+
+#### Step 4: Verify Cluster Access and Permissions
+
+```bash
+# Verify cluster access and permissions
+echo "🔍 Verifying cluster access and permissions..."
+
+# Check if we can list projects
+echo "Available projects:"
+oc get projects | head -10
+
+# Check permissions in current project
+echo ""
+echo "Permissions in current project ($NAMESPACE):"
+oc auth can-i --list --namespace=$NAMESPACE | head -10
+
+# Check if we can create resources
+echo ""
+echo "Testing resource creation permissions:"
+oc auth can-i create pods --namespace=$NAMESPACE && echo "✅ Can create pods" || echo "❌ Cannot create pods"
+oc auth can-i create services --namespace=$NAMESPACE && echo "✅ Can create services" || echo "❌ Cannot create services"
+oc auth can-i create routes --namespace=$NAMESPACE && echo "✅ Can create routes" || echo "❌ Cannot create routes"
+oc auth can-i create secrets --namespace=$NAMESPACE && echo "✅ Can create secrets" || echo "❌ Cannot create secrets"
+
+echo ""
+echo "🎉 Cluster verification completed"
+```
+
+#### Complete Login Script
+
+```bash
+#!/bin/bash
+
+# Complete OpenShift login and setup script
+setup_openshift_access() {
+    echo "🚀 Setting up OpenShift access..."
+    
+    # Verify required variables are set
+    if [ -z "$AZ_USER" ] || [ -z "$AZ_RG" ] || [ -z "$AZ_ARO" ]; then
+        echo "❌ Required environment variables not set. Please run:"
+        echo "   export AZ_USER='your-username'"
+        echo "   export AZ_RG='your-resource-group'"
+        echo "   export AZ_ARO='your-cluster-name'"
+        return 1
+    fi
+    
+    # Step 1: Get cluster information
+    echo "📡 Getting cluster information..."
+    export OCP_CONSOLE="$(az aro show --name ${AZ_ARO} --resource-group ${AZ_RG} -o tsv --query consoleProfile)"
+    export OCP_API="$(az aro show --name ${AZ_ARO} --resource-group ${AZ_RG} --query apiserverProfile.url -o tsv)"
+    
+    # Check if cluster exists and is accessible
+    if [ -z "$OCP_API" ] || [ "$OCP_API" == "null" ]; then
+        echo "❌ Could not retrieve cluster information. Verify cluster exists and you have access."
+        return 1
+    fi
+    
+    # Step 2: Get credentials
+    echo "🔑 Getting cluster credentials..."
+    ADMIN_CREDENTIALS=$(az aro list-credentials --name "${AZ_ARO}" --resource-group "${AZ_RG}")
+    export OCP_USER=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminUsername')
+    export OCP_PASS=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminPassword')
+    
+    # Step 3: Login to cluster
+    echo "🔐 Logging into cluster..."
+    oc login "${OCP_API}" -u "${OCP_USER}" -p "${OCP_PASS}" --insecure-skip-tls-verify=true
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to login to OpenShift cluster"
+        return 1
+    fi
+    
+    # Step 4: Setup project
+    echo "📁 Setting up project..."
+    if ! oc get project $NAMESPACE >/dev/null 2>&1; then
+        oc new-project $NAMESPACE --description="Microsweeper application for Azure Front Door integration"
+    else
+        oc project $NAMESPACE
+    fi
+    
+    # Step 5: Verify setup
+    echo "✅ OpenShift setup completed successfully!"
+    echo ""
+    echo "📋 Summary:"
+    echo "   Cluster: $OCP_API"
+    echo "   User: $(oc whoami)"
+    echo "   Project: $(oc project -q)"
+    echo "   Console: $OCP_CONSOLE"
+    echo ""
+    
+    # Save configuration for later use
+    cat << EOF > ~/.openshift_config
+# OpenShift configuration for Azure Front Door workshop
+export OCP_CONSOLE="${OCP_CONSOLE}"
+export OCP_API="${OCP_API}"
+export OCP_USER="${OCP_USER}"
+export OCP_PASS="${OCP_PASS}"
+export NAMESPACE="${NAMESPACE}"
+EOF
+    
+    echo "💾 Configuration saved to ~/.openshift_config"
+    echo "   You can source this file in future sessions: source ~/.openshift_config"
+}
+
+# Run the setup
+setup_openshift_access
+```
+
+#### Troubleshooting OpenShift Login Issues
+
+```bash
+# Common troubleshooting commands
+troubleshoot_openshift_login() {
+    echo "🔍 Troubleshooting OpenShift login issues..."
+    
+    # Check if Azure CLI is working
+    echo "1. Verifying Azure CLI access..."
+    az account show --output table
+    
+    # Check if cluster exists
+    echo "2. Verifying cluster exists..."
+    az aro show --name "${AZ_ARO}" --resource-group "${AZ_RG}" --output table
+    
+    # Check cluster status
+    echo "3. Checking cluster status..."
+    CLUSTER_STATE=$(az aro show --name "${AZ_ARO}" --resource-group "${AZ_RG}" --query provisioningState -o tsv)
+    echo "Cluster provisioning state: $CLUSTER_STATE"
+    
+    if [ "$CLUSTER_STATE" != "Succeeded" ]; then
+        echo "⚠️  Cluster is not in 'Succeeded' state. Current state: $CLUSTER_STATE"
+        echo "   Wait for cluster provisioning to complete before attempting login."
+    fi
+    
+    # Test network connectivity to API server
+    echo "4. Testing network connectivity to API server..."
+    if [ -n "$OCP_API" ]; then
+        echo "API Server: $OCP_API"
+        curl -k -s --connect-timeout 10 "$OCP_API/version" > /dev/null
+        if [ $? -eq 0 ]; then
+            echo "✅ Can reach API server"
+        else
+            echo "❌ Cannot reach API server - check network connectivity"
+        fi
+    fi
+    
+    # Check if oc CLI is installed and working
+    echo "5. Verifying OpenShift CLI..."
+    oc version --client
+    if [ $? -ne 0 ]; then
+        echo "❌ OpenShift CLI not installed or not working"
+        echo "   Install with: curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz"
+    fi
+}
+
+# Run troubleshooting if needed
+# troubleshoot_openshift_login
+```
+
 ### How to Obtain Required Values
 
 #### Getting ARO Cluster Information
@@ -85,8 +353,6 @@ After deploying your application:
 
 ```bash
 # Get the public route hostname for your application
-oc login --token=sha256~00000000000000000000000000000000000000000000 --server=https://$OCP_API:6443
-oc project microsweeper-ex
 export PUBLIC_ROUTE_HOST=$(oc -n ${NAMESPACE} get route ${APP_SERVICE} -o jsonpath='{.spec.host}')
 echo "Public Route: ${PUBLIC_ROUTE_HOST}"
 
@@ -220,43 +486,84 @@ Verify the private ingress controller is available:
 oc get IngressController private -n openshift-ingress-operator -o jsonpath='{.status.conditions}' | jq
 ```
 
-### 3. Set Up Azure Front Door
+### 3. Detailed Azure Front Door Configuration
 
-#### Create an Azure Front Door Profile
+This section provides detailed instructions for creating and configuring Azure Front Door for integration with ARO.
+
+#### Step 1: Environment Preparation
+
+Before starting, we need to set up the necessary environment variables:
 
 ```bash
-# Set variables
-FRONTDOOR_NAME="${AZ_USER}-frontdoor"
-ENDPOINT_NAME="${AZ_USER}-endpoint"
-ORIGIN_GROUP="${AZ_USER}-origins"
-APP_DOMAIN="app.${AZ_USER}.example.com"  # Your custom domain
+# Basic variables
+export AZ_USER="user1"                    # Your assigned username
+export AZ_RG="${AZ_USER}-rg"             # Resource group name
+export AZ_ARO="${AZ_USER}-cluster"       # ARO cluster name
+export AZ_LOCATION="eastus"              # Azure region
+export UNIQUE="$(openssl rand -hex 4)"   # Unique identifier
 
+# Front Door variables
+export FRONTDOOR_NAME="${AZ_USER}-frontdoor"     # Front Door profile name
+export ENDPOINT_NAME="${AZ_USER}-endpoint"       # Front Door endpoint name
+export ORIGIN_GROUP="${AZ_USER}-origins"         # Origin group name
+export APP_DOMAIN="app.${AZ_USER}.example.com"   # Custom domain for application
+```
+
+#### Step 2: Creating Azure Front Door Profile
+
+The Front Door profile is the main resource that contains all the configuration:
+
+```bash
 # Create Front Door profile (Standard tier recommended for WAF capabilities)
 az afd profile create \
   --profile-name $FRONTDOOR_NAME \
   --resource-group $AZ_RG \
   --sku Standard_AzureFrontDoor
 
+# Verify profile creation
+az afd profile show \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --output table
+```
+
+**Detailed explanation:**
+- **--profile-name**: Defines the unique name for your Front Door profile.
+- **--resource-group**: The resource group where the profile will be created.
+- **--sku**: Service tier. Standard allows WAF usage, while Premium offers additional security features.
+
+#### Step 3: Creating Front Door Endpoint
+
+Endpoints are the entry points for traffic:
+
+```bash
 # Create endpoint
 az afd endpoint create \
   --endpoint-name $ENDPOINT_NAME \
   --profile-name $FRONTDOOR_NAME \
   --resource-group $AZ_RG \
   --enabled true
+
+# Get the default endpoint hostname (for testing)
+DEFAULT_ENDPOINT_HOST=$(az afd endpoint show \
+  --endpoint-name $ENDPOINT_NAME \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --query hostName -o tsv)
+echo "Default endpoint host: ${DEFAULT_ENDPOINT_HOST}"
 ```
 
-#### Configure Origin Group and Origin
+**Detailed explanation:**
+- **--endpoint-name**: Unique name for your endpoint.
+- **--enabled**: Activates the endpoint immediately after creation.
+- The command generates a default hostname with format `{endpoint-name}.z01.azurefd.net`.
 
-##### For Public Clusters:
+#### Step 4: Origin Group Configuration
+
+The origin group defines how multiple origins are aggregated and load balanced:
 
 ```bash
-# Get your app's route hostname if not already set
-if [ -z "$PUBLIC_ROUTE_HOST" ]; then
-  PUBLIC_ROUTE_HOST=$(oc -n $NAMESPACE get route $APP_SERVICE -o jsonpath='{.spec.host}')
-  echo "Public Route Host: $PUBLIC_ROUTE_HOST"
-fi
-
-# Create origin group with health probe settings
+# Create origin group with health probe configuration
 az afd origin-group create \
   --origin-group-name $ORIGIN_GROUP \
   --profile-name $FRONTDOOR_NAME \
@@ -268,6 +575,33 @@ az afd origin-group create \
   --sample-size 4 \
   --successful-samples-required 3 \
   --additional-latency-in-milliseconds 50
+
+# Verify origin group creation
+az afd origin-group show \
+  --origin-group-name $ORIGIN_GROUP \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --output table
+```
+
+**Detailed explanation:**
+- **--probe-request-type**: Type of HTTP request for health checking.
+- **--probe-path**: URL path used for health probing.
+- **--probe-interval-in-seconds**: Frequency of health probes.
+- **--sample-size**: Number of samples to evaluate origin health.
+- **--successful-samples-required**: Number of successful samples needed to consider origin healthy.
+- **--additional-latency-in-milliseconds**: Additional latency tolerated before considering an origin degraded.
+
+#### Step 5: Origin Configuration
+
+The origin defines where your application is located:
+
+##### For Public ARO Clusters:
+
+```bash
+# Get the public route hostname for the application
+PUBLIC_ROUTE_HOST=$(oc -n microsweeper-ex get route microsweeper-appservice -o jsonpath='{.spec.host}')
+echo "Public route host: $PUBLIC_ROUTE_HOST"
 
 # Create origin pointing to the public route
 az afd origin create \
@@ -292,25 +626,14 @@ az afd origin show \
   --output table
 ```
 
-##### For Private Clusters:
+##### For Private ARO Clusters:
 
 ```bash
-# First, get the Private Link Service ID created by the private ingress controller
-# This assumes you've created a private ingress controller as shown earlier
+# Get the Private Link Service ID created by the private ingress controller
 PRIVATE_LINK_SERVICE_ID=$(az network private-link-service list \
   --resource-group $AZ_RG \
   --query "[?contains(name, 'private')].id" -o tsv)
 echo "Private Link Service ID: $PRIVATE_LINK_SERVICE_ID"
-
-# Create origin group
-az afd origin-group create \
-  --origin-group-name $ORIGIN_GROUP \
-  --profile-name $FRONTDOOR_NAME \
-  --resource-group $AZ_RG \
-  --probe-request-type GET \
-  --probe-protocol Http \
-  --probe-path "/" \
-  --probe-interval-in-seconds 60
 
 # Create origin with private link
 az afd origin create \
@@ -325,7 +648,18 @@ az afd origin create \
   --private-link-request-message "Request access to private ingress"
 ```
 
-#### Create Route and Custom Domain
+**Detailed explanation:**
+- **--host-name**: Origin server hostname (public or private route).
+- **--origin-host-header**: Host header sent to the origin (important for correct routing).
+- **--http-port/--https-port**: Ports used for communication with the origin.
+- **--priority**: Origin priority (relevant when there are multiple origins).
+- **--weight**: Weight for load balancing (relevant when there are multiple origins).
+- **--private-link-resource-id**: Private Link Service resource ID (private clusters only).
+- **--private-link-location**: Private Link location (must match cluster region).
+
+#### Step 6: Route Creation
+
+The route defines how requests are routed from the endpoint to the origin:
 
 ```bash
 # Create a route with the default endpoint domain
@@ -338,7 +672,8 @@ az afd route create \
   --https-redirect enabled \
   --forwarding-protocol HttpsOnly \
   --supported-protocols Http Https \
-  --link-to-default-domain true
+  --link-to-default-domain true \
+  --patterns "/*"
 
 # Verify route creation
 az afd route show \
@@ -346,370 +681,152 @@ az afd route show \
   --profile-name $FRONTDOOR_NAME \
   --endpoint-name $ENDPOINT_NAME \
   --resource-group $AZ_RG \
-  --output table
+  --output json | jq .
+```
 
-# Add custom domain (requires DNS validation or cert upload)
-az afd custom-domain create \
-  --custom-domain-name "app-domain" \
-  --profile-name $FRONTDOOR_NAME \
-  --resource-group $AZ_RG \
-  --host-name $APP_DOMAIN \
-  --minimum-tls-version "TLS12" \
-  --certificate-type ManagedCertificate
+**Detailed explanation:**
+- **--https-redirect**: Automatically redirects HTTP traffic to HTTPS.
+- **--forwarding-protocol**: Protocol used to send requests to the origin.
+- **--supported-protocols**: Protocols accepted at the endpoint.
+- **--link-to-default-domain**: Links the route to the endpoint's default domain.
+- **--patterns**: URL patterns that will match this route (/* matches all routes).
 
-# Get the validation token for DNS TXT record creation
-VALIDATION_TOKEN=$(az afd custom-domain show \
-  --custom-domain-name "app-domain" \
-  --profile-name $FRONTDOOR_NAME \
-  --resource-group $AZ_RG \
-  --query "validationProperties.validationToken" -o tsv)
+### 4. Domain Configuration - Automatic vs Custom
 
-echo "To validate domain ownership, create a TXT record:"
-echo "Name: _dnsauth.$APP_DOMAIN"
-echo "Value: $VALIDATION_TOKEN"
-echo "TTL: 3600"
+Azure Front Door offers two options for domains: the default domain automatically provided by Azure and custom domains.
 
-# Wait for domain validation to complete before proceeding
-echo "After creating the DNS record, wait for validation to complete..."
+#### Option A: Automatic Domain Provided by Azure
 
-# Link the custom domain to the route
+When you create an endpoint in Azure Front Door, you automatically get a domain with the format `{endpoint-name}.z01.azurefd.net`. This domain:
+
+- **Is generated automatically** when creating the endpoint
+- **Includes SSL/TLS certificate** managed by Azure
+- **Requires no additional DNS configuration**
+- **Is perfect for testing** and development
+
+```bash
+# The automatic domain is already available after creating the endpoint
+echo "Your automatic domain is: ${DEFAULT_ENDPOINT_HOST}"
+
+# Create route using only the automatic domain
 az afd route create \
-  --route-name custom-app-route \
+  --route-name app-route-auto \
   --profile-name $FRONTDOOR_NAME \
   --resource-group $AZ_RG \
   --endpoint-name $ENDPOINT_NAME \
   --origin-group $ORIGIN_GROUP \
   --https-redirect enabled \
   --forwarding-protocol HttpsOnly \
-  --custom-domains "app-domain" \
   --supported-protocols Http Https \
+  --link-to-default-domain true \
   --patterns "/*"
+
+# Verify it works immediately
+echo "You can access your application at: https://${DEFAULT_ENDPOINT_HOST}"
+curl -Ik https://$DEFAULT_ENDPOINT_HOST
 ```
 
-##### Important DNS Configuration:
+**Advantages of automatic domain:**
+- ✅ Immediate configuration
+- ✅ SSL certificate included
+- ✅ No DNS management required
+- ✅ Perfect for development and testing
 
-After creating the custom domain in Front Door, you need to:
+**Disadvantages of automatic domain:**
+- ❌ User-unfriendly name
+- ❌ Doesn't reflect your brand or company
+- ❌ Azure-dependent (not portable)
 
-1. Add a TXT record for domain validation:
-   * Name: `_dnsauth.app.yourdomain.com`
-   * Value: The validation token from the command above
-   * TTL: 3600
+#### Option B: Custom Domain
 
-2. Add a CNAME record to point your domain to Front Door:
-   * Name: `app.yourdomain.com`
-   * Value: Your Front Door endpoint (`{endpoint-name}.z01.azurefd.net`)
-   * TTL: 3600
+For production, you'll probably want to use your own domain. This process requires more steps but offers greater control:
 
-### 4. Configure Route in OpenShift
-
-Create a route that uses your custom domain:
-
-```bash
-cat <<EOF | oc apply -f -
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  labels:
-    app.kubernetes.io/name: microsweeper-appservice
-    app.kubernetes.io/version: 1.0.0-SNAPSHOT
-    app.openshift.io/runtime: quarkus
-    type: private  # Only needed for private ingress controller
-  name: microsweeper-appservice-fd
-  namespace: microsweeper-ex
-spec:
-  host: $APP_DOMAIN
-  to:
-    kind: Service
-    name: microsweeper-appservice
-    weight: 100
-    targetPort:
-      port: 8080
-  wildcardPolicy: None
-EOF
-```
-
-### 5. Configure DNS
-
-Update your DNS to point your custom domain to the Azure Front Door endpoint:
+##### Step 1: Create custom domain in Azure Front Door
 
 ```bash
-# Get the Front Door endpoint hostname
-FRONTDOOR_ENDPOINT=$(az afd endpoint show \
-  --endpoint-name $ENDPOINT_NAME \
+# Define your custom domain
+export APP_DOMAIN="app.mycompany.com"  # Replace with your actual domain
+
+# Create custom domain
+az afd custom-domain create \
+  --custom-domain-name "my-app-domain" \
   --profile-name $FRONTDOOR_NAME \
   --resource-group $AZ_RG \
-  --query hostName -o tsv)
+  --host-name $APP_DOMAIN \
+  --minimum-tls-version "TLS12" \
+  --certificate-type ManagedCertificate
 
-# Create a CNAME record in your DNS provider
-# CNAME $APP_DOMAIN -> $FRONTDOOR_ENDPOINT
-```
-
-## Differences Between Public and Private ARO Clusters
-
-| Feature | Public ARO Cluster | Private ARO Cluster |
-|---------|-------------------|---------------------|
-| Ingress Controller | Uses default public ingress | Requires private ingress controller |
-| Connectivity | Direct from Front Door to public endpoints | Requires Private Link Service |
-| Default Security | Traffic flows over public internet to ARO | Traffic remains on Microsoft backbone |
-| Implementation | Simpler, fewer components | More complex, more secure |
-| Variable Requirements | PUBLIC_ROUTE_HOST | PRIVATE_LINK_SERVICE_ID |
-| Route Configuration | Standard route | Route with private link backend |
-| Network Configuration | No additional network setup | Requires proper VNet and subnet configuration |
-| DNS Requirements | Direct DNS to public endpoints | DNS to Front Door endpoints only |
-
-## Testing the Configuration
-
-Verify your setup with these steps:
-
-```bash
-# Get your custom domain from the route
-DOMAIN=$(oc -n microsweeper-ex get route microsweeper-appservice-fd -o jsonpath='{.spec.host}')
-
-# Verify DNS resolution
-nslookup $DOMAIN
-
-# Check the connection in your browser
-echo "Visit https://$DOMAIN in your browser"
-```
-
-When visiting your custom domain in a browser, you should see:
-1. A secure connection (HTTPS)
-2. Your application loading successfully
-3. Traffic routed through Azure Front Door (visible in DNS lookup as references to *.azurefd.net and *.t-msedge.net)
-
-## Benefits of This Approach
-
-- **Security**: Azure Front Door provides WAF capabilities to protect against common web exploits
-- **Performance**: Global content delivery and edge caching improve application performance
-- **Scalability**: Front Door automatically scales with traffic demands
-- **Certificate Management**: Managed TLS certificates with automatic renewal
-- **Traffic Management**: Load balancing and health probes ensure high availability
-
-## Troubleshooting
-
-If your application is not accessible through Azure Front Door, follow these troubleshooting steps:
-
-### 1. Verify Ingress Controller Status
-
-```bash
-# For public clusters, check the default ingress controller
-oc -n openshift-ingress-operator get ingresscontroller default -o yaml
-
-# For private clusters, check the private ingress controller
-oc -n openshift-ingress-operator get ingresscontroller private -o yaml
-
-# Check if ingress pods are running
-oc -n openshift-ingress get pods
-```
-
-### 2. Check Route Configuration
-
-```bash
-# Verify the route exists and has correct host
-oc -n $NAMESPACE get route $APP_SERVICE-fd -o yaml
-
-# Test direct access to the route (should work for public clusters)
-curl -Ik https://$(oc -n $NAMESPACE get route $APP_SERVICE -o jsonpath='{.spec.host}')
-```
-
-### 3. Verify DNS Configuration
-
-```bash
-# Check DNS resolution for your custom domain
-nslookup $APP_DOMAIN
-
-# Make sure it resolves to Azure Front Door (should see azurefd.net in the chain)
-dig $APP_DOMAIN +trace
-
-# Verify TXT record for domain validation
-nslookup -type=TXT _dnsauth.$APP_DOMAIN
-```
-
-### 4. Check Azure Front Door Configuration
-
-```bash
-# Verify origin group health
-az afd origin-group show \
-  --origin-group-name $ORIGIN_GROUP \
+# Verify custom domain status
+az afd custom-domain show \
+  --custom-domain-name "my-app-domain" \
   --profile-name $FRONTDOOR_NAME \
-  --resource-group $AZ_RG
-
-# Check origin health
-az afd origin show \
-  --origin-name "aro-app-origin" \
-  --origin-group-name $ORIGIN_GROUP \
-  --profile-name $FRONTDOOR_NAME \
-  --resource-group $AZ_RG
-
-# Verify route configuration
-az afd route show \
-  --route-name app-route \
-  --profile-name $FRONTDOOR_NAME \
-  --endpoint-name $ENDPOINT_NAME \
-  --resource-group $AZ_RG
-
-# For private clusters, check private link status
-az network private-endpoint-connection list \
   --resource-group $AZ_RG \
   --output table
 ```
 
-### 5. Test with cURL
+##### Step 2: Domain ownership validation
+
+Azure requires you to prove you own the domain:
 
 ```bash
-# Test the default Front Door endpoint
-curl -Ik https://$DEFAULT_ENDPOINT_HOST
-
-# Test with custom domain
-curl -Ik https://$APP_DOMAIN
-```
-
-### 6. Check WAF Rules and Logs
-
-If you've configured WAF policies, check if they're blocking legitimate traffic:
-
-```bash
-# List WAF policies
-az network front-door waf-policy list --resource-group $AZ_RG -o table
-
-# Check WAF logs in Azure Monitor/Log Analytics
-# Navigate to Azure Portal -> Front Door profile -> Diagnostics -> Logs
-```
-
-### 7. Common Issues and Solutions
-
-| Issue | Possible Cause | Solution |
-|-------|---------------|----------|
-| 502 Bad Gateway | Origin unreachable | Check if app is running and accessible from origin |
-| 403 Forbidden | WAF rule blocking | Review and adjust WAF rules |
-| Connection timeout | DNS misconfiguration | Verify CNAME records are correct |
-| Certificate errors | Domain validation incomplete | Check validation status in Front Door |
-| Intermittent failures | Health probe failures | Adjust probe settings, check app health |
-| Private link issues | Access request not approved | Approve private endpoint connection |
-
-## Advanced Configuration
-
-- Enable the Web Application Firewall (WAF) on Front Door
-- Configure session affinity for stateful applications
-- Set up geo-filtering to restrict access from specific countries
-- Implement custom routing rules based on URL paths
-
-## Conclusion
-
-Integrating Azure Front Door with your ARO cluster provides a secure, high-performance way to expose your applications globally while maintaining control over your infrastructure. Whether using a public or private cluster, Front Door offers significant benefits for production workloads.
-
----
-
-## Advanced Configuration Options
-
-### Implementing Web Application Firewall (WAF)
-
-Azure Front Door can be configured with a WAF policy to protect your applications from common web threats:
-
-```bash
-# Create a WAF policy
-az network front-door waf-policy create \
-  --name "${AZ_USER}-waf-policy" \
-  --resource-group $AZ_RG \
-  --mode Detection \
-  --sku Standard_AzureFrontDoor
-
-# Enable OWASP rule set
-az network front-door waf-policy managed-rules add \
-  --policy-name "${AZ_USER}-waf-policy" \
-  --resource-group $AZ_RG \
-  --type DefaultRuleSet \
-  --version 1.1
-
-# Associate WAF policy with your Front Door security policy
-az afd security-policy create \
-  --security-policy-name "${AZ_USER}-security-policy" \
+# Get the validation token
+VALIDATION_TOKEN=$(az afd custom-domain show \
+  --custom-domain-name "my-app-domain" \
   --profile-name $FRONTDOOR_NAME \
   --resource-group $AZ_RG \
-  --domains app-domain \
-  --waf-policy "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$AZ_RG/providers/Microsoft.Network/frontdoorWebApplicationFirewallPolicies/${AZ_USER}-waf-policy"
+  --query "validationProperties.validationToken" -o tsv)
+
+echo "=================================================="
+echo "REQUIRED DNS CONFIGURATION FOR VALIDATION"
+echo "=================================================="
+echo "Record type: TXT"
+echo "Name: _dnsauth.${APP_DOMAIN}"
+echo "Value: ${VALIDATION_TOKEN}"
+echo "TTL: 3600 (recommended)"
+echo "=================================================="
+echo ""
+echo "⚠️  IMPORTANT: You must create this TXT record in your DNS provider"
+echo "   before continuing with the next steps."
 ```
 
-### Setting Up Geographic Filtering
+##### Step 3: DNS configuration for traffic routing
 
-You can configure geographic filtering to allow or block traffic from specific countries:
+Besides the TXT record for validation, you need a CNAME record:
 
 ```bash
-# Create a custom rule for geo-filtering
-az network front-door waf-policy custom-rules add \
-  --policy-name "${AZ_USER}-waf-policy" \
-  --resource-group $AZ_RG \
-  --name "BlockCountries" \
-  --priority 100 \
-  --rule-type MatchRule \
-  --action Block \
-  --match-condition-operator GeoMatch \
-  --match-values "XX" "YY" \  # Replace with country codes to block
-  --match-variable RemoteAddr
+echo "=================================================="
+echo "DNS CONFIGURATION FOR TRAFFIC ROUTING"
+echo "=================================================="
+echo "Record type: CNAME"
+echo "Name: app (or your preferred subdomain)"
+echo "Value: ${DEFAULT_ENDPOINT_HOST}"
+echo "TTL: 3600 (recommended)"
+echo "=================================================="
+echo ""
+echo "Final result: app.mycompany.com -> ${DEFAULT_ENDPOINT_HOST}"
 ```
 
-### Setting Up Caching Rules
-
-To improve performance, configure caching rules:
+##### Step 4: Verify domain validation
 
 ```bash
-# Add caching configuration to your route
-az afd route update \
-  --route-name app-route \
-  --profile-name $FRONTDOOR_NAME \
-  --endpoint-name $ENDPOINT_NAME \
-  --resource-group $AZ_RG \
-  --cache-configuration query-string-caching=IncludeSpecifiedQueryStrings query-parameters='version' compression=Enabled cache-duration=1.12:00:00  # 1 day 12 hours
-```
-
-## GitHub Actions Workflow for Automation
-
-You can automate the deployment of your application and Front Door configuration using GitHub Actions. Here's a sample workflow file:
-
-```yaml
-name: Deploy App to ARO with Front Door
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# Function to verify domain validation
+check_domain_validation() {
+    local status=$(az afd custom-domain show \
+        --custom-domain-name "my-app-domain" \
+        --profile-name $FRONTDOOR_NAME \
+        --resource-group $AZ_RG \
+        --query "domainValidationState" -o tsv 2>/dev/null)
     
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
-      - name: Set up OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: latest
-          
-      - name: OpenShift Login
-        run: |
-          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
-          
-      - name: Deploy Application
-        run: |
-          cd ./app
-          # Add deployment commands here
-          
-      - name: Configure Azure Front Door
-        run: |
-          # Add Front Door configuration commands here
-          # Use variables stored in GitHub secrets
-```
-
-## Additional Resources
-
-- [Azure Front Door Documentation](https://learn.microsoft.com/en-us/azure/frontdoor/)
-- [ARO Documentation](https://learn.microsoft.com/en-us/azure/openshift/)
-- [OpenShift Networking Documentation](https://docs.openshift.com/container-platform/latest/networking/understanding-networking.html)
-- [Azure WAF Documentation](https://learn.microsoft.com/en-us/azure/web-application-firewall/)
-- [Private Link Service Documentation](https://learn.microsoft.com/en-us/azure/private-link/private-link-service-overview)
+    echo "Domain validation status: $status"
+    
+    case $status in
+        "Approved")
+            echo "✅ Domain validated successfully"
+            return 0
+            ;;
+        "Pending")
+            echo "⏳ Validation pending. Verify TXT record is configured."
+            return 1
+            ;;
+        "Rejected")
+            echo "❌
