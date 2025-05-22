@@ -12,7 +12,7 @@ Azure Front Door is a global, scalable entry-point that uses the Microsoft globa
 
 ## Architecture
 
-![ARO + Azure Front Door Diagram](images/aro-frontdoor.png)
+![ARO + Azure Front Door Diagram](https://raw.githubusercontent.com/Azure/ARO-Landing-Zone-Accelerator/main/docs/images/frontdoor-integration.png)
 
 In this architecture:
 - Azure Front Door sits at the edge of Microsoft's network
@@ -308,7 +308,621 @@ troubleshoot_openshift_login() {
         if [ $? -eq 0 ]; then
             echo "✅ Can reach API server"
         else
-            echo "❌ Cannot reach API server - check network connectivity"
+            echo "❌ Validation rejected. Verify DNS configuration."
+            return 1
+            ;;
+        *)
+            echo "❓ Unknown status: $status"
+            return 1
+            ;;
+    esac
+}
+
+# Verify validation (may take a few minutes)
+echo "Verifying domain validation..."
+if check_domain_validation; then
+    echo "Proceeding with route configuration..."
+else
+    echo "Wait for domain validation to complete before continuing."
+    echo "You can manually verify the TXT record with: nslookup -type=TXT _dnsauth.${APP_DOMAIN}"
+fi
+```
+
+##### Step 5: Create route with custom domain
+
+```bash
+# Create route associated with custom domain
+az afd route create \
+  --route-name custom-app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --endpoint-name $ENDPOINT_NAME \
+  --origin-group $ORIGIN_GROUP \
+  --https-redirect enabled \
+  --forwarding-protocol HttpsOnly \
+  --custom-domains "my-app-domain" \
+  --supported-protocols Http Https \
+  --patterns "/*"
+
+# Verify custom route creation
+az afd route show \
+  --route-name custom-app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --endpoint-name $ENDPOINT_NAME \
+  --resource-group $AZ_RG \
+  --output json | jq '.customDomains'
+```
+
+#### SSL/TLS Certificate Configuration
+
+Azure Front Door automatically handles SSL certificates, but it's important to understand the options:
+
+##### Azure Managed Certificates (Recommended)
+
+```bash
+# Verify managed certificate status
+az afd custom-domain show \
+  --custom-domain-name "my-app-domain" \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --query "{domain: hostName, certType: certificateType, certStatus: certificateStatus}" \
+  --output table
+
+# Azure managed certificates renew automatically
+echo "✅ Azure managed certificates renew automatically"
+echo "✅ No manual intervention required"
+echo "✅ Include automatic domain validation"
+```
+
+##### Own Certificates (Advanced)
+
+If you prefer to use your own certificates:
+
+```bash
+# First, upload your certificate to Azure Key Vault
+# Then use it in the custom domain
+az afd custom-domain create \
+  --custom-domain-name "my-app-domain-own-cert" \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --host-name "secure.mycompany.com" \
+  --minimum-tls-version "TLS12" \
+  --certificate-type CustomerCertificate \
+  --certificate-url "https://my-keyvault.vault.azure.net/certificates/my-certificate/version"
+
+echo "⚠️  With own certificates, you're responsible for:"
+echo "   - Renewal before expiration"
+echo "   - Certificate chain management"
+echo "   - Key Vault access permissions"
+```
+
+#### Complete Domain Configuration Script
+
+```bash
+#!/bin/bash
+
+# Script to configure domain (automatic or custom)
+configure_domain() {
+    local domain_type=$1
+    
+    case $domain_type in
+        "auto"|"automatic")
+            echo "🚀 Configuring automatic domain..."
+            
+            # Use automatic domain
+            az afd route create \
+                --route-name app-route-auto \
+                --profile-name $FRONTDOOR_NAME \
+                --resource-group $AZ_RG \
+                --endpoint-name $ENDPOINT_NAME \
+                --origin-group $ORIGIN_GROUP \
+                --https-redirect enabled \
+                --forwarding-protocol HttpsOnly \
+                --supported-protocols Http Https \
+                --link-to-default-domain true \
+                --patterns "/*"
+            
+            echo "✅ Configuration completed!"
+            echo "🌐 Your application is available at: https://${DEFAULT_ENDPOINT_HOST}"
+            ;;
+            
+        "custom"|"personal")
+            echo "🚀 Configuring custom domain..."
+            
+            # Request domain from user if not defined
+            if [ -z "$APP_DOMAIN" ]; then
+                read -p "Enter your custom domain (e.g. app.mycompany.com): " APP_DOMAIN
+            fi
+            
+            # Create custom domain
+            az afd custom-domain create \
+                --custom-domain-name "my-app-domain" \
+                --profile-name $FRONTDOOR_NAME \
+                --resource-group $AZ_RG \
+                --host-name $APP_DOMAIN \
+                --minimum-tls-version "TLS12" \
+                --certificate-type ManagedCertificate
+            
+            # Show DNS instructions
+            VALIDATION_TOKEN=$(az afd custom-domain show \
+                --custom-domain-name "my-app-domain" \
+                --profile-name $FRONTDOOR_NAME \
+                --resource-group $AZ_RG \
+                --query "validationProperties.validationToken" -o tsv)
+            
+            echo ""
+            echo "📋 REQUIRED DNS CONFIGURATION:"
+            echo "================================"
+            echo "1. TXT record (for validation):"
+            echo "   Name: _dnsauth.${APP_DOMAIN}"
+            echo "   Value: ${VALIDATION_TOKEN}"
+            echo ""
+            echo "2. CNAME record (for traffic):"
+            echo "   Name: ${APP_DOMAIN}"
+            echo "   Value: ${DEFAULT_ENDPOINT_HOST}"
+            echo "================================"
+            echo ""
+            echo "⏳ After configuring DNS, run:"
+            echo "   ./configure_domain.sh validate"
+            ;;
+            
+        "validate")
+            echo "🔍 Validating custom domain..."
+            
+            # Verify validation
+            if check_domain_validation; then
+                # Create route with custom domain
+                az afd route create \
+                    --route-name custom-app-route \
+                    --profile-name $FRONTDOOR_NAME \
+                    --resource-group $AZ_RG \
+                    --endpoint-name $ENDPOINT_NAME \
+                    --origin-group $ORIGIN_GROUP \
+                    --https-redirect enabled \
+                    --forwarding-protocol HttpsOnly \
+                    --custom-domains "my-app-domain" \
+                    --supported-protocols Http Https \
+                    --patterns "/*"
+                
+                echo "✅ Configuration completed!"
+                echo "🌐 Your application is available at: https://${APP_DOMAIN}"
+            else
+                echo "❌ Validation not yet completed."
+                echo "   Verify DNS configuration and try again in a few minutes."
+            fi
+            ;;
+            
+        *)
+            echo "Usage: $0 {auto|custom|validate}"
+            echo "  auto     - Use Azure automatic domain"
+            echo "  custom   - Configure custom domain"
+            echo "  validate - Validate and activate custom domain"
+            ;;
+    esac
+}
+
+# Example usage:
+# configure_domain "auto"     # For automatic domain
+# configure_domain "custom"   # For custom domain
+# configure_domain "validate" # To validate custom domain
+```
+
+#### Comparison: Automatic vs Custom Domain
+
+| Feature | Automatic Domain | Custom Domain |
+|---------|------------------|---------------|
+| **Setup time** | Immediate | 15-60 minutes |
+| **DNS configuration** | Not required | Required (TXT + CNAME) |
+| **SSL certificate** | Included automatically | Included (Azure managed) |
+| **Cost** | Included | Included |
+| **Customization** | Limited | Complete |
+| **Easy to remember** | Difficult | Easy |
+| **Suitable for** | Development/Testing | Production |
+| **Example URL** | `my-app.z01.azurefd.net` | `app.mycompany.com` |
+
+#### Best Practices for Domains
+
+1. **For development**: Use automatic domain for quick setup
+2. **For production**: Always use custom domains
+3. **DNS configuration**: Use low TTL (300-600s) during initial setup
+4. **Certificates**: Prefer Azure managed certificates for simplicity
+5. **Subdomains**: Consider using specific subdomains (app.mycompany.com, api.mycompany.com)
+6. **Monitoring**: Set up alerts for certificate expiration (though Azure renews automatically)
+
+### 5. Configure Route in OpenShift
+
+Create a route that uses your custom domain:
+
+```bash
+cat <<EOF | oc apply -f -
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app.kubernetes.io/name: microsweeper-appservice
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
+    app.openshift.io/runtime: quarkus
+    type: private  # Only needed for private ingress controller
+  name: microsweeper-appservice-fd
+  namespace: microsweeper-ex
+spec:
+  host: $APP_DOMAIN
+  to:
+    kind: Service
+    name: microsweeper-appservice
+    weight: 100
+    targetPort:
+      port: 8080
+  wildcardPolicy: None
+EOF
+```
+
+### 6. Configure DNS
+
+Update your DNS to point your custom domain to the Azure Front Door endpoint:
+
+```bash
+# Get the Front Door endpoint hostname
+FRONTDOOR_ENDPOINT=$(az afd endpoint show \
+  --endpoint-name $ENDPOINT_NAME \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --query hostName -o tsv)
+
+# Create a CNAME record in your DNS provider
+# CNAME $APP_DOMAIN -> $FRONTDOOR_ENDPOINT
+```
+
+### 7. Web Application Firewall (WAF) Configuration
+
+To protect your application with WAF:
+
+```bash
+# Create WAF policy
+az network front-door waf-policy create \
+  --name "${AZ_USER}-waf-policy" \
+  --resource-group $AZ_RG \
+  --mode Detection \
+  --sku Standard_AzureFrontDoor
+
+# Enable OWASP rule set
+az network front-door waf-policy managed-rules add \
+  --policy-name "${AZ_USER}-waf-policy" \
+  --resource-group $AZ_RG \
+  --type DefaultRuleSet \
+  --version 1.1
+
+# Associate WAF policy with your custom domain
+az afd security-policy create \
+  --security-policy-name "${AZ_USER}-security-policy" \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --domains my-app-domain \
+  --waf-policy "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$AZ_RG/providers/Microsoft.Network/frontdoorWebApplicationFirewallPolicies/${AZ_USER}-waf-policy"
+```
+
+**Detailed explanation:**
+- **--mode**: Sets WAF operation mode.
+  - **Detection**: Only detects and logs threats without blocking.
+  - **Prevention**: Actively blocks detected threats.
+- **--type DefaultRuleSet**: Uses the default OWASP rule set.
+- **--version**: OWASP rule set version to use.
+
+### 8. Cache Configuration
+
+To improve performance, configure cache rules:
+
+```bash
+# Add cache configuration to your route
+az afd route update \
+  --route-name app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --endpoint-name $ENDPOINT_NAME \
+  --resource-group $AZ_RG \
+  --cache-configuration query-string-caching=IncludeSpecifiedQueryStrings query-parameters='version' compression=Enabled cache-duration=1.12:00:00
+```
+
+**Detailed explanation:**
+- **query-string-caching**: Defines how to handle query parameters for caching.
+- **query-parameters**: List of query parameters to include in cache key.
+- **compression**: Enables content compression to improve performance.
+- **cache-duration**: Cache duration (in this example, 1 day and 12 hours).
+
+### 9. Configuration Verification
+
+Once configuration is complete, verify everything works correctly:
+
+```bash
+# Test default Front Door endpoint
+curl -Ik https://$DEFAULT_ENDPOINT_HOST
+
+# Test with custom domain (after DNS configuration)
+curl -Ik https://$APP_DOMAIN
+
+# Verify DNS resolution
+nslookup $APP_DOMAIN
+```
+
+**Common troubleshooting:**
+
+1. **Custom domain doesn't work**:
+   - Verify DNS records (TXT and CNAME) are correctly configured
+   - Verify domain validation completed in Azure Front Door
+
+2. **502 Bad Gateway errors**:
+   - Verify application is running at the origin
+   - Verify ports and protocols are correctly configured
+
+3. **SSL certificate issues**:
+   - Wait 1-2 hours for managed certificate to be provisioned
+   - Verify domain validation status
+
+4. **Cache not working as expected**:
+   - Review Cache-Control headers configuration in your application
+   - Verify query parameters are configured correctly
+
+## Differences Between Public and Private ARO Clusters
+
+| Feature | Public ARO Cluster | Private ARO Cluster |
+|---------|-------------------|---------------------|
+| Ingress Controller | Uses default public ingress | Requires private ingress controller |
+| Connectivity | Direct from Front Door to public endpoints | Requires Private Link Service |
+| Default Security | Traffic flows over public internet to ARO | Traffic remains on Microsoft backbone |
+| Implementation | Simpler, fewer components | More complex, more secure |
+| Variable Requirements | PUBLIC_ROUTE_HOST | PRIVATE_LINK_SERVICE_ID |
+| Route Configuration | Standard route | Route with private link backend |
+| Network Configuration | No additional network setup | Requires proper VNet and subnet configuration |
+| DNS Requirements | Direct DNS to public endpoints | DNS to Front Door endpoints only |
+
+## Testing the Configuration
+
+Verify your setup with these steps:
+
+```bash
+# Get your custom domain from the route
+DOMAIN=$(oc -n microsweeper-ex get route microsweeper-appservice-fd -o jsonpath='{.spec.host}')
+
+# Verify DNS resolution
+nslookup $DOMAIN
+
+# Check the connection in your browser
+echo "Visit https://$DOMAIN in your browser"
+```
+
+When visiting your custom domain in a browser, you should see:
+1. A secure connection (HTTPS)
+2. Your application loading successfully
+3. Traffic routed through Azure Front Door (visible in DNS lookup as references to *.azurefd.net and *.t-msedge.net)
+
+## Benefits of This Approach
+
+- **Security**: Azure Front Door provides WAF capabilities to protect against common web exploits
+- **Performance**: Global content delivery and edge caching improve application performance
+- **Scalability**: Front Door automatically scales with traffic demands
+- **Certificate Management**: Managed TLS certificates with automatic renewal
+- **Traffic Management**: Load balancing and health probes ensure high availability
+
+## Troubleshooting
+
+If your application is not accessible through Azure Front Door, follow these troubleshooting steps:
+
+### 1. Verify Ingress Controller Status
+
+```bash
+# For public clusters, check the default ingress controller
+oc -n openshift-ingress-operator get ingresscontroller default -o yaml
+
+# For private clusters, check the private ingress controller
+oc -n openshift-ingress-operator get ingresscontroller private -o yaml
+
+# Check if ingress pods are running
+oc -n openshift-ingress get pods
+```
+
+### 2. Check Route Configuration
+
+```bash
+# Verify the route exists and has correct host
+oc -n $NAMESPACE get route $APP_SERVICE-fd -o yaml
+
+# Test direct access to the route (should work for public clusters)
+curl -Ik https://$(oc -n $NAMESPACE get route $APP_SERVICE -o jsonpath='{.spec.host}')
+```
+
+### 3. Verify DNS Configuration
+
+```bash
+# Check DNS resolution for your custom domain
+nslookup $APP_DOMAIN
+
+# Make sure it resolves to Azure Front Door (should see azurefd.net in the chain)
+dig $APP_DOMAIN +trace
+
+# Verify TXT record for domain validation
+nslookup -type=TXT _dnsauth.$APP_DOMAIN
+```
+
+### 4. Check Azure Front Door Configuration
+
+```bash
+# Verify origin group health
+az afd origin-group show \
+  --origin-group-name $ORIGIN_GROUP \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG
+
+# Check origin health
+az afd origin show \
+  --origin-name "aro-app-origin" \
+  --origin-group-name $ORIGIN_GROUP \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG
+
+# Verify route configuration
+az afd route show \
+  --route-name app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --endpoint-name $ENDPOINT_NAME \
+  --resource-group $AZ_RG
+
+# For private clusters, check private link status
+az network private-endpoint-connection list \
+  --resource-group $AZ_RG \
+  --output table
+```
+
+### 5. Test with cURL
+
+```bash
+# Test the default Front Door endpoint
+curl -Ik https://$DEFAULT_ENDPOINT_HOST
+
+# Test with custom domain
+curl -Ik https://$APP_DOMAIN
+```
+
+### 6. Check WAF Rules and Logs
+
+If you've configured WAF policies, check if they're blocking legitimate traffic:
+
+```bash
+# List WAF policies
+az network front-door waf-policy list --resource-group $AZ_RG -o table
+
+# Check WAF logs in Azure Monitor/Log Analytics
+# Navigate to Azure Portal -> Front Door profile -> Diagnostics -> Logs
+```
+
+### 7. Common Issues and Solutions
+
+| Issue | Possible Cause | Solution |
+|-------|---------------|----------|
+| 502 Bad Gateway | Origin unreachable | Check if app is running and accessible from origin |
+| 403 Forbidden | WAF rule blocking | Review and adjust WAF rules |
+| Connection timeout | DNS misconfiguration | Verify CNAME records are correct |
+| Certificate errors | Domain validation incomplete | Check validation status in Front Door |
+| Intermittent failures | Health probe failures | Adjust probe settings, check app health |
+| Private link issues | Access request not approved | Approve private endpoint connection |
+
+## Advanced Configuration Options
+
+### Implementing Web Application Firewall (WAF)
+
+Azure Front Door can be configured with a WAF policy to protect your applications from common web threats:
+
+```bash
+# Create a WAF policy
+az network front-door waf-policy create \
+  --name "${AZ_USER}-waf-policy" \
+  --resource-group $AZ_RG \
+  --mode Detection \
+  --sku Standard_AzureFrontDoor
+
+# Enable OWASP rule set
+az network front-door waf-policy managed-rules add \
+  --policy-name "${AZ_USER}-waf-policy" \
+  --resource-group $AZ_RG \
+  --type DefaultRuleSet \
+  --version 1.1
+
+# Associate WAF policy with your Front Door security policy
+az afd security-policy create \
+  --security-policy-name "${AZ_USER}-security-policy" \
+  --profile-name $FRONTDOOR_NAME \
+  --resource-group $AZ_RG \
+  --domains my-app-domain \
+  --waf-policy "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$AZ_RG/providers/Microsoft.Network/frontdoorWebApplicationFirewallPolicies/${AZ_USER}-waf-policy"
+```
+
+### Setting Up Geographic Filtering
+
+You can configure geographic filtering to allow or block traffic from specific countries:
+
+```bash
+# Create a custom rule for geo-filtering
+az network front-door waf-policy custom-rules add \
+  --policy-name "${AZ_USER}-waf-policy" \
+  --resource-group $AZ_RG \
+  --name "BlockCountries" \
+  --priority 100 \
+  --rule-type MatchRule \
+  --action Block \
+  --match-condition-operator GeoMatch \
+  --match-values "XX" "YY" \  # Replace with country codes to block
+  --match-variable RemoteAddr
+```
+
+### Setting Up Caching Rules
+
+To improve performance, configure caching rules:
+
+```bash
+# Add caching configuration to your route
+az afd route update \
+  --route-name app-route \
+  --profile-name $FRONTDOOR_NAME \
+  --endpoint-name $ENDPOINT_NAME \
+  --resource-group $AZ_RG \
+  --cache-configuration query-string-caching=IncludeSpecifiedQueryStrings query-parameters='version' compression=Enabled cache-duration=1.12:00:00  # 1 day 12 hours
+```
+
+## GitHub Actions Workflow for Automation
+
+You can automate the deployment of your application and Front Door configuration using GitHub Actions. Here's a sample workflow file:
+
+```yaml
+name: Deploy App to ARO with Front Door
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Set up OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+          
+      - name: OpenShift Login
+        run: |
+          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+          
+      - name: Deploy Application
+        run: |
+          cd ./app
+          # Add deployment commands here
+          
+      - name: Configure Azure Front Door
+        run: |
+          # Add Front Door configuration commands here
+          # Use variables stored in GitHub secrets
+```
+
+## Conclusion
+
+Integrating Azure Front Door with your ARO cluster provides a secure, high-performance way to expose your applications globally while maintaining control over your infrastructure. Whether using a public or private cluster, Front Door offers significant benefits for production workloads.
+
+---
+
+## Additional Resources
+
+- [Azure Front Door Documentation](https://learn.microsoft.com/en-us/azure/frontdoor/)
+- [ARO Documentation](https://learn.microsoft.com/en-us/azure/openshift/)
+- [OpenShift Networking Documentation](https://docs.openshift.com/container-platform/latest/networking/understanding-networking.html)
+- [Azure WAF Documentation](https://learn.microsoft.com/en-us/azure/web-application-firewall/)
+- [Private Link Service Documentation](https://learn.microsoft.com/en-us/azure/private-link/private-link-service-overview) Cannot reach API server - check network connectivity"
         fi
     fi
     
