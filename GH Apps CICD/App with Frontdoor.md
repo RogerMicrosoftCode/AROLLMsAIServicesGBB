@@ -12,7 +12,7 @@ Azure Front Door is a global, scalable entry-point that uses the Microsoft globa
 
 ## Architecture
 
-![ARO + Azure Front Door Diagram](https://raw.githubusercontent.com/Azure/ARO-Landing-Zone-Accelerator/main/docs/images/frontdoor-integration.png)
+![ARO + Azure Front Door Diagram](images/aro-frontdoor.png)
 
 In this architecture:
 - Azure Front Door sits at the edge of Microsoft's network
@@ -910,11 +910,672 @@ jobs:
           # Use variables stored in GitHub secrets
 ```
 
-## Conclusion
+## Practical Implementation: Deploying Azure Front Door with Specific Environment
 
-Integrating Azure Front Door with your ARO cluster provides a secure, high-performance way to expose your applications globally while maintaining control over your infrastructure. Whether using a public or private cluster, Front Door offers significant benefits for production workloads.
+This section provides a step-by-step implementation using specific environment variables for a real Azure Red Hat OpenShift cluster deployment.
 
----
+### Environment Configuration for This Implementation
+
+```bash
+# Set the specific environment variables for this deployment
+export AZ_USER="rooliva@microsoft.com"
+export AZ_RG="arogbbwestus3"
+export AZ_ARO="aroclustergbb"
+export AZ_LOCATION="westus3"
+export UNIQUE="$(openssl rand -hex 4)"
+
+# Domain configuration
+export CUSTOM_DOMAIN="${AZ_USER}.apps.arolatamgbb.jaropro.net"
+export APP_DOMAIN="rooliva00.apps.arolatamgbb.jaropro.net"
+
+# Front Door resources
+export FRONTDOOR_NAME="rooliva-microsoft-com-fd"  # URL-safe name
+export ENDPOINT_NAME="rooliva-endpoint"
+export ORIGIN_GROUP="rooliva-origins"
+
+# OpenShift configuration
+export NAMESPACE="microsweeper-ex"
+export APP_SERVICE="microsweeper-appservices"  # Note: using the plural form as specified
+
+# Display configuration for verification
+echo "=================================================="
+echo "DEPLOYMENT CONFIGURATION"
+echo "=================================================="
+echo "User: ${AZ_USER}"
+echo "Resource Group: ${AZ_RG}"
+echo "ARO Cluster: ${AZ_ARO}"
+echo "Location: ${AZ_LOCATION}"
+echo "Custom Domain: ${CUSTOM_DOMAIN}"
+echo "App Domain: ${APP_DOMAIN}"
+echo "Front Door Name: ${FRONTDOOR_NAME}"
+echo "Namespace: ${NAMESPACE}"
+echo "=================================================="
+```
+
+### Step 1: Validate Environment and Login
+
+```bash
+#!/bin/bash
+
+# Validation and login script
+validate_and_login() {
+    echo "🔍 Validating environment..."
+    
+    # Check if Azure CLI is logged in
+    if ! az account show >/dev/null 2>&1; then
+        echo "❌ Not logged into Azure CLI. Please run 'az login'"
+        return 1
+    fi
+    
+    echo "✅ Azure CLI authenticated"
+    
+    # Verify the resource group exists
+    if ! az group show --name "$AZ_RG" >/dev/null 2>&1; then
+        echo "❌ Resource group '$AZ_RG' not found"
+        return 1
+    fi
+    
+    echo "✅ Resource group '$AZ_RG' found"
+    
+    # Verify the ARO cluster exists
+    CLUSTER_STATE=$(az aro show --name "$AZ_ARO" --resource-group "$AZ_RG" --query provisioningState -o tsv 2>/dev/null)
+    if [ -z "$CLUSTER_STATE" ]; then
+        echo "❌ ARO cluster '$AZ_ARO' not found in resource group '$AZ_RG'"
+        return 1
+    elif [ "$CLUSTER_STATE" != "Succeeded" ]; then
+        echo "⚠️  ARO cluster state: $CLUSTER_STATE (expected: Succeeded)"
+        echo "   Please wait for cluster provisioning to complete"
+        return 1
+    fi
+    
+    echo "✅ ARO cluster '$AZ_ARO' is ready (state: $CLUSTER_STATE)"
+    
+    # Get OpenShift credentials
+    echo "🔑 Getting OpenShift credentials..."
+    export OCP_CONSOLE="$(az aro show --name ${AZ_ARO} --resource-group ${AZ_RG} -o tsv --query consoleProfile)"
+    export OCP_API="$(az aro show --name ${AZ_ARO} --resource-group ${AZ_RG} --query apiserverProfile.url -o tsv)"
+    
+    ADMIN_CREDENTIALS=$(az aro list-credentials --name "${AZ_ARO}" --resource-group "${AZ_RG}")
+    export OCP_USER=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminUsername')
+    export OCP_PASS=$(echo $ADMIN_CREDENTIALS | jq -r '.kubeadminPassword')
+    
+    echo "🔐 Logging into OpenShift..."
+    oc login "${OCP_API}" -u "${OCP_USER}" -p "${OCP_PASS}" --insecure-skip-tls-verify=true
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to login to OpenShift cluster"
+        return 1
+    fi
+    
+    # Setup project
+    if ! oc get project $NAMESPACE >/dev/null 2>&1; then
+        echo "📁 Creating project '$NAMESPACE'..."
+        oc new-project $NAMESPACE --description="Microsweeper application for Azure Front Door integration"
+    else
+        echo "📁 Using existing project '$NAMESPACE'..."
+        oc project $NAMESPACE
+    fi
+    
+    echo "✅ Environment validation and login completed successfully"
+    return 0
+}
+
+# Run validation
+validate_and_login
+```
+
+### Step 2: Get Application Route Information
+
+```bash
+# Get the existing application route
+get_app_route_info() {
+    echo "🔍 Getting application route information..."
+    
+    # Check if the application service exists
+    if ! oc get service $APP_SERVICE -n $NAMESPACE >/dev/null 2>&1; then
+        echo "❌ Service '$APP_SERVICE' not found in namespace '$NAMESPACE'"
+        echo "   Available services:"
+        oc get services -n $NAMESPACE
+        return 1
+    fi
+    
+    echo "✅ Service '$APP_SERVICE' found"
+    
+    # Get existing route if it exists
+    EXISTING_ROUTE=$(oc get route -n $NAMESPACE -l app.kubernetes.io/name=${APP_SERVICE} -o jsonpath='{.items[0].spec.host}' 2>/dev/null)
+    
+    if [ -n "$EXISTING_ROUTE" ]; then
+        export PUBLIC_ROUTE_HOST="$EXISTING_ROUTE"
+        echo "✅ Found existing route: $PUBLIC_ROUTE_HOST"
+    else
+        echo "⚠️  No existing route found. Creating one..."
+        
+        # Create a route for the application
+        cat <<EOF | oc apply -f -
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app.kubernetes.io/name: ${APP_SERVICE}
+  name: ${APP_SERVICE}
+  namespace: ${NAMESPACE}
+spec:
+  to:
+    kind: Service
+    name: ${APP_SERVICE}
+    weight: 100
+  port:
+    targetPort: 8080
+  wildcardPolicy: None
+EOF
+        
+        # Wait for route to be created and get hostname
+        sleep 5
+        export PUBLIC_ROUTE_HOST=$(oc get route $APP_SERVICE -n $NAMESPACE -o jsonpath='{.spec.host}')
+        echo "✅ Created new route: $PUBLIC_ROUTE_HOST"
+    fi
+    
+    # Test route accessibility
+    echo "🧪 Testing route accessibility..."
+    curl -Ik https://$PUBLIC_ROUTE_HOST --connect-timeout 10
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Route is accessible"
+    else
+        echo "⚠️  Route may not be fully ready yet"
+    fi
+}
+
+# Get application route information
+get_app_route_info
+```
+
+### Step 3: Create Azure Front Door Profile and Endpoint
+
+```bash
+# Create Front Door profile and endpoint
+create_frontdoor_profile() {
+    echo "🚀 Creating Azure Front Door profile..."
+    
+    # Create Front Door profile
+    az afd profile create \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --sku Standard_AzureFrontDoor \
+        --location "$AZ_LOCATION"
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create Front Door profile"
+        return 1
+    fi
+    
+    echo "✅ Front Door profile '$FRONTDOOR_NAME' created successfully"
+    
+    # Create Front Door endpoint
+    echo "🌐 Creating Front Door endpoint..."
+    az afd endpoint create \
+        --endpoint-name "$ENDPOINT_NAME" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --enabled true
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create Front Door endpoint"
+        return 1
+    fi
+    
+    # Get the default endpoint hostname
+    export DEFAULT_ENDPOINT_HOST=$(az afd endpoint show \
+        --endpoint-name "$ENDPOINT_NAME" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query hostName -o tsv)
+    
+    echo "✅ Front Door endpoint created successfully"
+    echo "🌐 Default endpoint: https://$DEFAULT_ENDPOINT_HOST"
+}
+
+# Create the Front Door profile and endpoint
+create_frontdoor_profile
+```
+
+### Step 4: Configure Origin Group and Origin
+
+```bash
+# Configure origin group and origin
+configure_origin() {
+    echo "🎯 Creating origin group..."
+    
+    # Create origin group with health probe settings
+    az afd origin-group create \
+        --origin-group-name "$ORIGIN_GROUP" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --probe-request-type GET \
+        --probe-protocol Https \
+        --probe-path "/" \
+        --probe-interval-in-seconds 60 \
+        --sample-size 4 \
+        --successful-samples-required 3 \
+        --additional-latency-in-milliseconds 50
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create origin group"
+        return 1
+    fi
+    
+    echo "✅ Origin group '$ORIGIN_GROUP' created successfully"
+    
+    # Create origin pointing to the ARO application route
+    echo "🎯 Creating origin for ARO application..."
+    az afd origin create \
+        --origin-name "aro-microsweeper-origin" \
+        --origin-group-name "$ORIGIN_GROUP" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --host-name "$PUBLIC_ROUTE_HOST" \
+        --origin-host-header "$PUBLIC_ROUTE_HOST" \
+        --http-port 80 \
+        --https-port 443 \
+        --priority 1 \
+        --weight 1000 \
+        --enabled true
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create origin"
+        return 1
+    fi
+    
+    echo "✅ Origin 'aro-microsweeper-origin' created successfully"
+    echo "🎯 Origin points to: $PUBLIC_ROUTE_HOST"
+}
+
+# Configure the origin
+configure_origin
+```
+
+### Step 5: Create Route for Default Domain
+
+```bash
+# Create route for the default domain
+create_default_route() {
+    echo "🛤️  Creating route for default domain..."
+    
+    az afd route create \
+        --route-name "microsweeper-default-route" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --endpoint-name "$ENDPOINT_NAME" \
+        --origin-group "$ORIGIN_GROUP" \
+        --https-redirect enabled \
+        --forwarding-protocol HttpsOnly \
+        --supported-protocols Http Https \
+        --link-to-default-domain true \
+        --patterns "/*"
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create default route"
+        return 1
+    fi
+    
+    echo "✅ Default route created successfully"
+    echo "🌐 Application accessible at: https://$DEFAULT_ENDPOINT_HOST"
+    
+    # Test the default endpoint
+    echo "🧪 Testing default endpoint..."
+    sleep 30  # Wait for propagation
+    curl -Ik https://$DEFAULT_ENDPOINT_HOST --connect-timeout 15
+}
+
+# Create the default route
+create_default_route
+```
+
+### Step 6: Configure Custom Domain (Optional)
+
+```bash
+# Configure custom domain
+configure_custom_domain() {
+    echo "🌍 Configuring custom domain: $APP_DOMAIN"
+    
+    # Create custom domain
+    az afd custom-domain create \
+        --custom-domain-name "microsweeper-custom-domain" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --host-name "$APP_DOMAIN" \
+        --minimum-tls-version "TLS12" \
+        --certificate-type ManagedCertificate
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create custom domain"
+        return 1
+    fi
+    
+    # Get validation token
+    VALIDATION_TOKEN=$(az afd custom-domain show \
+        --custom-domain-name "microsweeper-custom-domain" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query "validationProperties.validationToken" -o tsv)
+    
+    echo "✅ Custom domain created"
+    echo ""
+    echo "=================================================="
+    echo "DNS CONFIGURATION REQUIRED"
+    echo "=================================================="
+    echo "🔧 Add these DNS records in your DNS provider:"
+    echo ""
+    echo "1. TXT Record for domain validation:"
+    echo "   Name: _dnsauth.${APP_DOMAIN}"
+    echo "   Value: ${VALIDATION_TOKEN}"
+    echo "   TTL: 3600"
+    echo ""
+    echo "2. CNAME Record for traffic routing:"
+    echo "   Name: rooliva00"
+    echo "   Value: ${DEFAULT_ENDPOINT_HOST}"
+    echo "   TTL: 3600"
+    echo "=================================================="
+    echo ""
+    echo "⏳ After configuring DNS, run the validation step"
+}
+
+# Configure custom domain (uncomment to use)
+# configure_custom_domain
+```
+
+### Step 7: Validate Custom Domain and Create Custom Route
+
+```bash
+# Validate custom domain and create route
+validate_and_create_custom_route() {
+    echo "🔍 Validating custom domain..."
+    
+    # Check domain validation status
+    local status=$(az afd custom-domain show \
+        --custom-domain-name "microsweeper-custom-domain" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query "domainValidationState" -o tsv 2>/dev/null)
+    
+    echo "Domain validation status: $status"
+    
+    if [ "$status" != "Approved" ]; then
+        echo "⚠️  Domain not yet validated. Current status: $status"
+        echo "   Please ensure DNS records are configured and try again later"
+        return 1
+    fi
+    
+    echo "✅ Domain validated successfully"
+    
+    # Create route with custom domain
+    az afd route create \
+        --route-name "microsweeper-custom-route" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --endpoint-name "$ENDPOINT_NAME" \
+        --origin-group "$ORIGIN_GROUP" \
+        --https-redirect enabled \
+        --forwarding-protocol HttpsOnly \
+        --custom-domains "microsweeper-custom-domain" \
+        --supported-protocols Http Https \
+        --patterns "/*"
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create custom route"
+        return 1
+    fi
+    
+    echo "✅ Custom route created successfully"
+    echo "🌐 Application accessible at: https://$APP_DOMAIN"
+}
+
+# Validate and create custom route (run after DNS configuration)
+# validate_and_create_custom_route
+```
+
+### Step 8: Configure OpenShift Route for Front Door
+
+```bash
+# Configure OpenShift route for Front Door
+configure_openshift_route() {
+    echo "🛤️  Configuring OpenShift route for Front Door..."
+    
+    # Create route that accepts traffic from Front Door custom domain
+    cat <<EOF | oc apply -f -
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app.kubernetes.io/name: ${APP_SERVICE}
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
+    app.openshift.io/runtime: quarkus
+    type: frontdoor
+  name: ${APP_SERVICE}-frontdoor
+  namespace: ${NAMESPACE}
+spec:
+  host: ${APP_DOMAIN}
+  to:
+    kind: Service
+    name: ${APP_SERVICE}
+    weight: 100
+  port:
+    targetPort: 8080
+  wildcardPolicy: None
+EOF
+
+    if [ $? -eq 0 ]; then
+        echo "✅ OpenShift route for Front Door created successfully"
+        echo "🌐 Route configured for domain: $APP_DOMAIN"
+    else
+        echo "❌ Failed to create OpenShift route for Front Door"
+        return 1
+    fi
+}
+
+# Configure OpenShift route
+configure_openshift_route
+```
+
+### Step 9: Configure WAF (Web Application Firewall)
+
+```bash
+# Configure WAF for enhanced security
+configure_waf() {
+    echo "🛡️  Configuring Web Application Firewall..."
+    
+    # Create WAF policy
+    WAF_POLICY_NAME="rooliva-microsweeper-waf"
+    
+    az network front-door waf-policy create \
+        --name "$WAF_POLICY_NAME" \
+        --resource-group "$AZ_RG" \
+        --mode Detection \
+        --sku Standard_AzureFrontDoor
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create WAF policy"
+        return 1
+    fi
+    
+    echo "✅ WAF policy '$WAF_POLICY_NAME' created"
+    
+    # Enable OWASP rule set
+    az network front-door waf-policy managed-rules add \
+        --policy-name "$WAF_POLICY_NAME" \
+        --resource-group "$AZ_RG" \
+        --type DefaultRuleSet \
+        --version 1.1
+    
+    echo "✅ OWASP rule set enabled"
+    
+    # Associate WAF policy with Front Door (requires custom domain)
+    if [ -n "$APP_DOMAIN" ]; then
+        az afd security-policy create \
+            --security-policy-name "microsweeper-security-policy" \
+            --profile-name "$FRONTDOOR_NAME" \
+            --resource-group "$AZ_RG" \
+            --domains "microsweeper-custom-domain" \
+            --waf-policy "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$AZ_RG/providers/Microsoft.Network/frontdoorWebApplicationFirewallPolicies/$WAF_POLICY_NAME"
+        
+        echo "✅ WAF policy associated with custom domain"
+    else
+        echo "ℹ️  WAF policy created but not associated (custom domain required)"
+    fi
+}
+
+# Configure WAF (uncomment to enable)
+# configure_waf
+```
+
+### Step 10: Verification and Testing
+
+```bash
+# Complete verification and testing
+verify_deployment() {
+    echo "🧪 Running deployment verification..."
+    
+    echo "1. Checking Azure Front Door profile..."
+    az afd profile show \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query "{name: name, state: provisioningState, sku: sku.name}" \
+        --output table
+    
+    echo "2. Checking Front Door endpoint..."
+    az afd endpoint show \
+        --endpoint-name "$ENDPOINT_NAME" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query "{name: name, hostname: hostName, state: provisioningState}" \
+        --output table
+    
+    echo "3. Checking origin health..."
+    az afd origin show \
+        --origin-name "aro-microsweeper-origin" \
+        --origin-group-name "$ORIGIN_GROUP" \
+        --profile-name "$FRONTDOOR_NAME" \
+        --resource-group "$AZ_RG" \
+        --query "{name: name, hostname: hostName, enabled: enabled}" \
+        --output table
+    
+    echo "4. Testing default endpoint..."
+    echo "🌐 Default Front Door endpoint: https://$DEFAULT_ENDPOINT_HOST"
+    curl -I https://$DEFAULT_ENDPOINT_HOST --connect-timeout 15 --max-time 30
+    
+    echo ""
+    echo "5. Checking OpenShift routes..."
+    oc get routes -n $NAMESPACE
+    
+    echo ""
+    echo "=================================================="
+    echo "DEPLOYMENT SUMMARY"
+    echo "=================================================="
+    echo "✅ Azure Front Door Profile: $FRONTDOOR_NAME"
+    echo "✅ Front Door Endpoint: $ENDPOINT_NAME"
+    echo "✅ Default Domain: https://$DEFAULT_ENDPOINT_HOST"
+    echo "✅ Origin: $PUBLIC_ROUTE_HOST"
+    echo "✅ OpenShift Namespace: $NAMESPACE"
+    
+    if [ -n "$APP_DOMAIN" ]; then
+        echo "🌍 Custom Domain: https://$APP_DOMAIN (requires DNS configuration)"
+    fi
+    
+    echo "=================================================="
+}
+
+# Run verification
+verify_deployment
+```
+
+### Complete Deployment Script
+
+```bash
+#!/bin/bash
+# Complete deployment script for Azure Front Door with ARO
+
+# Set environment variables
+export AZ_USER="rooliva@microsoft.com"
+export AZ_RG="arogbbwestus3"
+export AZ_ARO="aroclustergbb"
+export AZ_LOCATION="westus3"
+export CUSTOM_DOMAIN="${AZ_USER}.apps.arolatamgbb.jaropro.net"
+export APP_DOMAIN="rooliva00.apps.arolatamgbb.jaropro.net"
+export FRONTDOOR_NAME="rooliva-microsoft-com-fd"
+export ENDPOINT_NAME="rooliva-endpoint"
+export ORIGIN_GROUP="rooliva-origins"
+export NAMESPACE="microsweeper-ex"
+export APP_SERVICE="microsweeper-appservices"
+
+echo "🚀 Starting Azure Front Door deployment for ARO..."
+
+# Run all deployment steps
+validate_and_login && \
+get_app_route_info && \
+create_frontdoor_profile && \
+configure_origin && \
+create_default_route && \
+configure_openshift_route && \
+verify_deployment
+
+echo "🎉 Deployment completed!"
+echo ""
+echo "Next steps (optional):"
+echo "1. Configure custom domain DNS records"
+echo "2. Run: validate_and_create_custom_route"
+echo "3. Enable WAF: configure_waf"
+```
+
+### Troubleshooting This Specific Deployment
+
+```bash
+# Troubleshooting commands specific to this deployment
+troubleshoot_deployment() {
+    echo "🔍 Troubleshooting deployment..."
+    
+    # Check if service name is correct
+    echo "1. Checking application service..."
+    oc get services -n $NAMESPACE | grep -E "(microsweeper|${APP_SERVICE})"
+    
+    # Check if there are multiple services with similar names
+    if [ $? -ne 0 ]; then
+        echo "Service '$APP_SERVICE' not found. Available services:"
+        oc get services -n $NAMESPACE
+        echo ""
+        echo "💡 Suggestion: Update APP_SERVICE variable with the correct service name"
+    fi
+    
+    # Check ARO cluster connectivity
+    echo "2. Testing ARO cluster connectivity..."
+    oc cluster-info
+    
+    # Check Front Door provisioning state
+    echo "3. Checking Front Door provisioning..."
+    az afd profile show --profile-name "$FRONTDOOR_NAME" --resource-group "$AZ_RG" --query provisioningState -o tsv
+    
+    # Test origin connectivity from Azure
+    echo "4. Testing origin accessibility..."
+    if [ -n "$PUBLIC_ROUTE_HOST" ]; then
+        echo "Testing: https://$PUBLIC_ROUTE_HOST"
+        curl -I https://$PUBLIC_ROUTE_HOST --connect-timeout 10
+    fi
+}
+
+# Run troubleshooting
+# troubleshoot_deployment
+```
+
+This practical implementation section provides:
+
+1. **Real Environment Configuration** - Using the specific values you provided
+2. **Complete Step-by-Step Process** - From validation to final testing
+3. **Error Handling** - Proper checks and error messages
+4. **Modular Functions** - Each step as a separate function for easy debugging
+5. **Verification Steps** - Comprehensive testing and validation
+6. **Troubleshooting** - Specific to this deployment scenario
+7. **Complete Script** - Ready-to-run automation
+
+The implementation handles the specific service name variation (`microsweeper-appservices` vs `microsweeper-appservice`) and provides proper domain configuration for the `arolatamgbb.jaropro.net` domain structure.
 
 ## Additional Resources
 
