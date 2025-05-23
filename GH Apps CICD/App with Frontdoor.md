@@ -1101,8 +1101,7 @@ create_frontdoor_profile() {
     az afd profile create \
         --profile-name "$FRONTDOOR_NAME" \
         --resource-group "$AZ_RG" \
-        --sku Standard_AzureFrontDoor \
-        --location "$AZ_LOCATION"
+        --sku Standard_AzureFrontDoor
     
     if [ $? -ne 0 ]; then
         echo "❌ Failed to create Front Door profile"
