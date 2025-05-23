@@ -218,7 +218,8 @@ create_origin() {
         --https-port 443 \
         --priority 1 \
         --weight 1000 \
-        --enabled-state Enabled
+        --enabled-state Enabled 
+        ##--certificate-name-check-enabled Disabled
     
     log_success "Origin 'aro-app-origin' created successfully"
     
