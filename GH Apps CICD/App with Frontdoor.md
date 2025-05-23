@@ -921,7 +921,7 @@ This section provides a step-by-step implementation using specific environment v
 export AZ_USER="rooliva@microsoft.com"
 export AZ_RG="arogbbwestus3"
 export AZ_ARO="aroclustergbb"
-export AZ_LOCATION="westus3"
+export AZ_LOCATION="westus3o"
 export UNIQUE="$(openssl rand -hex 4)"
 
 # Domain configuration
