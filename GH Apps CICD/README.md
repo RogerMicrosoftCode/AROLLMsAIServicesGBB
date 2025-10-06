@@ -4,12 +4,48 @@ This guide showcases various application examples that can be deployed in Azure 
 
 ## 📋 Table of Contents
 
+- [🔗 APIM and ARO Pipeline Integration](#-apim-and-aro-pipeline-integration)
 - [🎮 Microsweeper Java Application](#-microsweeper-java-application)
 - [📊 Jupyter Notebook with GitHub Actions](#-jupyter-notebook-with-github-actions)
 - [🧠 MLOps Application Examples](#-mlops-application-examples)
 - [🌐 Microsweeper with Azure Front Door](#-microsweeper-with-azure-front-door)
 - [🔄 Application with Redis Cache](#-application-with-redis-cache)
 - [🔄 GitHub Operations](#-github-operations)
+
+## 🔗 APIM and ARO Pipeline Integration
+
+[View Documentation](APIM-ARO-Integration.md) | [View Script](apim-aro-pipeline-automation.sh)
+
+**Automated pipeline deployment and token configuration between Azure API Management (APIM) and Azure Red Hat OpenShift (ARO)**
+
+This comprehensive automation solution provides:
+
+- **Automated APIM Provisioning** - Deploy and configure Azure API Management instances
+- **ARO Integration** - Seamless connection to existing or new ARO clusters
+- **Token Management** - Independent configuration and synchronization of authentication tokens
+- **Security** - Secure token storage in Azure Key Vault
+- **CI/CD Pipelines** - Deploy both GitHub Actions and OpenShift Pipelines (Tekton)
+- **Backend Configuration** - Automatic APIM-to-ARO service linking
+
+**Key Features:**
+- One-command deployment script
+- Environment variable-based configuration
+- Token rotation support
+- Comprehensive validation and troubleshooting
+- Production-ready security practices
+- Multi-environment support
+
+**Quick Start:**
+```bash
+# Configure environment
+export AZ_RG="aro-apim-rg"
+export AZ_ARO="my-aro-cluster"
+export APIM_NAME="my-apim-instance"
+export NAMESPACE="api-services"
+
+# Deploy integration
+./apim-aro-pipeline-automation.sh deploy
+```
 
 ## 🎮 Microsweeper Java Application
 
