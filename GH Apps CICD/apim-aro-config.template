@@ -1,0 +1,133 @@
+# APIM-ARO Integration Configuration Template
+# Copy this file to .env and customize for your environment
+# Source it before running the script: source .env
+
+# ========================================
+# Azure Configuration
+# ========================================
+
+# Your Azure user email
+export AZ_USER="user@example.com"
+
+# Azure Resource Group (will be created if it doesn't exist)
+export AZ_RG="aro-apim-integration-rg"
+
+# Existing ARO cluster name
+export AZ_ARO="my-aro-cluster"
+
+# Azure region for resources
+export AZ_LOCATION="eastus"
+
+# Optional: Specific Azure subscription ID
+# export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+
+# ========================================
+# APIM Configuration
+# ========================================
+
+# API Management instance name (must be globally unique)
+export APIM_NAME="apim-prod-${USER}"
+
+# Publisher details for APIM
+export APIM_PUBLISHER_EMAIL="api-admin@example.com"
+export APIM_PUBLISHER_NAME="API Management Team"
+
+# APIM SKU (Developer, Basic, Standard, Premium)
+# Developer: For dev/test (cheaper, no SLA)
+# Standard/Premium: For production (SLA, scaling)
+export APIM_SKU="Developer"
+
+# APIM capacity (number of units)
+export APIM_CAPACITY="1"
+
+# ========================================
+# ARO/OpenShift Configuration
+# ========================================
+
+# OpenShift namespace for API services
+export NAMESPACE="api-services"
+
+# Application name
+export APP_NAME="backend-api"
+
+# Service name (defaults to ${APP_NAME}-service)
+export APP_SERVICE="${APP_NAME}-service"
+
+# ========================================
+# API Configuration
+# ========================================
+
+# API path in APIM
+export API_PATH="/api/v1"
+
+# API display name in APIM
+export API_DISPLAY_NAME="Backend API"
+
+# API description
+export API_DESCRIPTION="Backend API services hosted on Azure Red Hat OpenShift"
+
+# ========================================
+# Token Configuration
+# ========================================
+
+# Enable automatic token rotation
+export TOKEN_ROTATION_ENABLED="true"
+
+# Token expiry in days
+export TOKEN_EXPIRY_DAYS="90"
+
+# ========================================
+# Optional: Advanced Configuration
+# ========================================
+
+# Unique identifier for resources (auto-generated if not set)
+# export UNIQUE="abc123"
+
+# Custom backend URL (auto-detected if not set)
+# export BACKEND_URL="https://my-app.example.com"
+
+# Key Vault name (auto-generated if not set)
+# export KEYVAULT_NAME="kv-myproject"
+
+# ========================================
+# Example Configurations for Different Environments
+# ========================================
+
+# Development Environment
+# export AZ_RG="aro-apim-dev-rg"
+# export APIM_NAME="apim-dev"
+# export APIM_SKU="Developer"
+# export NAMESPACE="dev-api-services"
+
+# Staging Environment
+# export AZ_RG="aro-apim-staging-rg"
+# export APIM_NAME="apim-staging"
+# export APIM_SKU="Standard"
+# export NAMESPACE="staging-api-services"
+
+# Production Environment
+# export AZ_RG="aro-apim-prod-rg"
+# export APIM_NAME="apim-production"
+# export APIM_SKU="Premium"
+# export NAMESPACE="prod-api-services"
+# export TOKEN_EXPIRY_DAYS="30"
+
+# ========================================
+# Usage Examples
+# ========================================
+
+# 1. Copy this file and customize:
+#    cp apim-aro-config.template .env
+#    vim .env
+
+# 2. Source the configuration:
+#    source .env
+
+# 3. Run the deployment:
+#    ./apim-aro-pipeline-automation.sh deploy
+
+# 4. Validate the deployment:
+#    ./apim-aro-pipeline-automation.sh validate
+
+# 5. Cleanup when done:
+#    ./apim-aro-pipeline-automation.sh cleanup
